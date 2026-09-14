@@ -59,9 +59,20 @@ $stmt = $pdo->prepare("
 ");
 $stmt->execute([$vendor['id']]);
 $sales = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-include 'includes/header.php';
 ?>
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Order Status - LocalKart</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="assets/css/style.css">
+</head>
+
+<body>
+
+    <?php include 'partials/header.php'; ?>
 
 <div class="container">
     <h2>Order Status</h2>
@@ -128,4 +139,5 @@ include 'includes/header.php';
     </div>
 </div>
 
-<?php include 'includes/footer.php'; ?>
+</body>
+</html>

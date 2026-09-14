@@ -41,9 +41,66 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <title>Forgot Password</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="assets/css/style.css">
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        .auth-container {
+            background: white;
+            padding: 40px;
+            border-radius: 8px;
+            border: 1px solid #eee;
+            width: 100%;
+            max-width: 400px;
+            margin: 60px 20px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+        }
+
+        .auth-container h2 {
+            text-align: center;
+        }
+
+        .auth-container label {
+            font-weight: 600;
+            color: #555;
+            display: block;
+            margin-top: 10px;
+        }
+
+        .auth-container input {
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .auth-container .btn {
+            width: 100%;
+            margin-top: 15px;
+            text-align: center;
+            border: none;
+        }
+
+        .msg {
+            margin-top: 15px;
+        }
+
+        .msg a {
+            word-break: break-all;
+        }
+
+        .text-center {
+            text-align: center;
+            margin-top: 15px;
+        }
+    </style>
 </head>
 
 <body>
+
+    <?php include 'partials/header.php'; ?>
 
     <div class="auth-container">
 

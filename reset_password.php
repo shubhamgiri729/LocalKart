@@ -55,8 +55,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $user) {
 
     <style>
         body {
-            font-family: system-ui, Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
             background: #f8f9fa;
+            color: #333;
         }
 
         .container {
@@ -65,7 +66,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $user) {
             background: #fff;
             padding: 30px;
             border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            border: 1px solid #eee;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
         }
 
         h2 {
@@ -75,7 +77,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $user) {
         }
 
         label {
-            font-weight: 500;
+            font-weight: 600;
+            color: #555;
         }
 
         input,
@@ -85,18 +88,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $user) {
             margin-top: 8px;
             border-radius: 4px;
             border: 1px solid #ccc;
+            font-family: inherit;
+            font-size: 15px;
+            box-sizing: border-box;
+            transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #007BFF;
+            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.15);
         }
 
         button {
             background: #28A745;
             color: #fff;
             border: none;
+            font-weight: 500;
             margin-top: 15px;
             cursor: pointer;
         }
 
         button:hover {
             background: #218838;
+            box-shadow: 0 2px 6px rgba(40, 167, 69, 0.25);
         }
 
         .msg {
@@ -133,6 +148,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $user) {
 </head>
 
 <body>
+    <?php include 'partials/header.php'; ?>
     <div class="container">
         <h2>Reset Password</h2>
 

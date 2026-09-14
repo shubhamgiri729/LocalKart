@@ -64,31 +64,6 @@ try {
             padding: 20px;
         }
 
-        nav {
-            background: #007BFF;
-            color: white;
-            padding: 10px 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
-
-        nav a {
-            color: white;
-            text-decoration: none;
-            padding: 5px 10px;
-            border-radius: 4px;
-            transition: background 0.3s;
-        }
-
-        nav a:hover {
-            background: #0056b3;
-        }
-
         h2,
         h3 {
             color: #007BFF;
@@ -99,8 +74,9 @@ try {
             background: white;
             padding: 20px;
             border-radius: 8px;
+            border: 1px solid #eee;
             margin-bottom: 20px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
         }
 
         .cart-summary {
@@ -118,31 +94,38 @@ try {
 
         th,
         td {
-            border: 1px solid #ddd;
+            border: 1px solid #eee;
             padding: 12px;
             text-align: left;
         }
 
         th {
-            background: #f1f1f1;
+            background: #f1f3f5;
+            font-weight: 600;
         }
 
         tr:nth-child(even) {
             background: #f8f9fa;
         }
 
+        tr:hover td {
+            background: #eef4ff;
+        }
+
         .btn {
             background: #007BFF;
             color: white;
-            padding: 8px 16px;
+            padding: 9px 18px;
             text-decoration: none;
             border-radius: 4px;
-            transition: 0.3s;
+            font-weight: 500;
+            transition: background 0.15s, box-shadow 0.15s;
             display: inline-block;
         }
 
         .btn:hover {
             background: #0056b3;
+            box-shadow: 0 2px 6px rgba(0, 123, 255, 0.25);
         }
 
         .btn-success {
@@ -164,11 +147,6 @@ try {
         }
 
         @media (max-width: 768px) {
-            nav {
-                flex-direction: column;
-                gap: 10px;
-            }
-
             .section {
                 padding: 10px;
             }
@@ -178,16 +156,8 @@ try {
 
 <body>
 
-    <nav>
-        <div><strong>👤 Customer Dashboard</strong></div>
-        <div>
-            <a href="helpdesk.php">Help Desk</a>
-            <a href="index.php">Home</a> |
-            <a href="products.php">Browse Products</a> |
-            <a href="cart.php">Cart (<?php echo $cartCount; ?>)</a> |
-            <a href="logout.php">Logout</a>
-        </div>
-    </nav>
+    <?php include 'partials/header.php'; ?>
+    <div class="container" style="padding-bottom:0;"><h2 style="margin-bottom:0;">👤 Customer Dashboard</h2></div>
 
     <div class="container">
 

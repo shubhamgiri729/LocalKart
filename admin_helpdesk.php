@@ -54,29 +54,16 @@ while ($row = $result->fetch_assoc()) {
 
     <style>
         body {
-            font-family: Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
             background: #f4f4f4;
+            color: #333;
+            margin: 0;
             padding: 20px;
         }
 
-        nav {
-            background: #007BFF;
-            color: white;
-            padding: 12px 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-radius: 6px;
-        }
-
-        nav a {
-            color: white;
-            text-decoration: none;
-            margin: 0 8px;
-        }
-
-        nav a:hover {
-            text-decoration: underline;
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
         }
 
         h1 {
@@ -88,8 +75,9 @@ while ($row = $result->fetch_assoc()) {
             background: white;
             padding: 15px;
             border-radius: 8px;
+            border: 1px solid #eee;
             margin-bottom: 15px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
         }
 
         .ticket p {
@@ -124,6 +112,15 @@ while ($row = $result->fetch_assoc()) {
             border-radius: 5px;
             border: 1px solid #ccc;
             margin-top: 10px;
+            font-family: inherit;
+            font-size: 15px;
+            transition: border-color 0.15s, box-shadow 0.15s;
+        }
+
+        .response-box textarea:focus {
+            outline: none;
+            border-color: #007BFF;
+            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.15);
         }
 
         button {
@@ -134,34 +131,24 @@ while ($row = $result->fetch_assoc()) {
             padding: 8px 14px;
             border-radius: 5px;
             cursor: pointer;
+            font-weight: 500;
+            transition: background 0.15s, box-shadow 0.15s;
         }
 
         button:hover {
             background: #0056b3;
+            box-shadow: 0 2px 6px rgba(0, 123, 255, 0.25);
         }
 
-        @media (max-width: 768px) {
-            nav {
-                flex-direction: column;
-                gap: 10px;
-            }
-        }
     </style>
 </head>
 
 <body>
 
-    <nav>
-        <strong>Admin Dashboard</strong>
-        <div>
-            <a href="adminhelpdesk.php">Help Desk</a>
-            <a href="products.php">Products</a>
-            <a href="index.php">Home</a>
-            <a href="logout.php">Logout</a>
-        </div>
-    </nav>
+    <?php include 'partials/header.php'; ?>
 
-    <h1>📩 Help Desk Queries</h1>
+    <div class="container">
+        <h1>📩 Help Desk Queries</h1>
 
     <?php if (empty($tickets)): ?>
         <p>No helpdesk tickets available.</p>
@@ -198,6 +185,7 @@ while ($row = $result->fetch_assoc()) {
         </div>
     <?php endforeach; ?>
 
+    </div>
 </body>
 
 </html>

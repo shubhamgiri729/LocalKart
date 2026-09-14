@@ -65,39 +65,6 @@ $categories = $pdo
             padding: 30px 20px;
         }
 
-        /* Navbar Styling */
-        nav {
-            background: var(--primary);
-            color: #fff;
-            padding: 0.8rem 2rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            position: sticky;
-            top: 0;
-            z-index: 1000;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-        }
-
-        .nav-logo {
-            font-size: 1.3rem;
-            font-weight: 800;
-            letter-spacing: -0.5px;
-        }
-
-        nav a,
-        nav span {
-            color: #fff;
-            text-decoration: none;
-            margin-left: 15px;
-            font-size: 0.95rem;
-            font-weight: 500;
-        }
-
-        nav a:hover {
-            opacity: 0.8;
-        }
-
         /* Filter Section Styling */
         .header-flex {
             display: flex;
@@ -242,21 +209,7 @@ $categories = $pdo
 </head>
 
 <body>
-    <nav>
-        <div class="nav-logo">🛍️ LocalKart</div>
-        <div>
-            <?php if (isLoggedIn()): ?>
-                <span>Welcome, <strong><?= htmlspecialchars($_SESSION['username']) ?></strong></span>
-                <a href="helpdesk.php">Help Desk</a>
-                <a href="cart.php">Cart</a>
-                <a href="logout.php">Logout</a>
-            <?php else: ?>
-                <a href="helpdesk.php">Help Desk</a>
-                <a href="login.php">Login</a>
-                <a href="register.php">Register</a>
-            <?php endif; ?>
-        </div>
-    </nav>
+    <?php include 'partials/header.php'; ?>
 
     <div class="container">
         <div class="header-flex">
@@ -299,12 +252,17 @@ $categories = $pdo
             <?php endif;
 
             while ($p = $stmt->fetch(PDO::FETCH_ASSOC)):
-                $image = (!empty($p['image']) && file_exists('uploads/products/' . $p['image']))
-                    ? 'uploads/products/' . $p['image']
-                    : 'uploads/products/default.jpg';
+                $imageName = $p['image'] ?? '';
+                $serverPath = __DIR__ . '/uploads/products/' . $imageName;
+                
+                if (!empty($imageName) && file_exists($serverPath)) {
+                    $image = 'uploads/products/' . $imageName;
+                } else {
+                    $image = 'uploads/products/football.png'; // Fallback to an image that exists
+                }
             ?>
                 <div class="product">
-                    <img src="<?= $image ?>" alt="<?= htmlspecialchars($p['name']) ?>">
+                    <img src="<?= htmlspecialchars($image) ?>" alt="<?= htmlspecialchars($p['name']) ?>">
                     <h3><?= htmlspecialchars($p['name']) ?></h3>
 
                     <p class="product-info"><strong>Store:</strong> <?= htmlspecialchars($p['store_name']) ?></p>

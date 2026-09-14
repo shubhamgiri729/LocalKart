@@ -163,22 +163,10 @@ $productData = $product ?: [
 
     <style>
         body {
-            font-family: Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
             background: #f8f9fa;
-        }
-
-        nav {
-            background: #007BFF;
-            padding: 15px;
-            color: #fff;
-            display: flex;
-            justify-content: space-between;
-        }
-
-        nav a {
-            color: #fff;
-            text-decoration: none;
-            margin: 0 8px;
+            color: #333;
+            margin: 0;
         }
 
         .container {
@@ -187,12 +175,15 @@ $productData = $product ?: [
             background: #fff;
             padding: 30px;
             border-radius: 10px;
+            border: 1px solid #eee;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
         }
 
         label {
-            font-weight: bold;
+            font-weight: 600;
             margin-top: 15px;
             display: block;
+            color: #555;
         }
 
         input,
@@ -200,7 +191,20 @@ $productData = $product ?: [
         select {
             width: 100%;
             padding: 10px;
-            margin-top: 5px;
+            margin-top: 6px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-family: inherit;
+            font-size: 15px;
+            transition: border-color 0.15s, box-shadow 0.15s;
+        }
+
+        input:focus,
+        textarea:focus,
+        select:focus {
+            outline: none;
+            border-color: #007BFF;
+            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.15);
         }
 
         button {
@@ -210,17 +214,33 @@ $productData = $product ?: [
             background: #007BFF;
             color: #fff;
             border: none;
+            border-radius: 4px;
+            font-weight: 500;
+            font-size: 15px;
+            cursor: pointer;
+            transition: background 0.15s, box-shadow 0.15s;
+        }
+
+        button:hover {
+            background: #0056b3;
+            box-shadow: 0 2px 6px rgba(0, 123, 255, 0.25);
         }
 
         .msg-error {
             background: #f8d7da;
-            padding: 10px;
+            color: #721c24;
+            padding: 10px 14px;
+            border-radius: 4px;
+            border: 1px solid #f5c6cb;
             margin-bottom: 15px;
         }
 
         .msg-success {
             background: #d4edda;
-            padding: 10px;
+            color: #155724;
+            padding: 10px 14px;
+            border-radius: 4px;
+            border: 1px solid #c3e6cb;
             margin-bottom: 15px;
         }
 
@@ -228,20 +248,14 @@ $productData = $product ?: [
             width: 150px;
             margin-top: 10px;
             border-radius: 6px;
+            border: 1px solid #eee;
         }
     </style>
 </head>
 
 <body>
 
-    <nav>
-        <strong>Vendor Dashboard</strong>
-        <div>
-            <a href="shopkeeper.php">Dashboard</a>
-            <a href="products.php">Products</a>
-            <a href="logout.php">Logout</a>
-        </div>
-    </nav>
+    <?php include 'partials/header.php'; ?>
 
     <div class="container">
         <h2><?php echo ucfirst($action); ?> Product</h2>

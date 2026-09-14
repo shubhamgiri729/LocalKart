@@ -122,32 +122,13 @@ $sales = $stmt->fetchAll(PDO::FETCH_ASSOC);
             padding: 20px;
         }
 
-        nav {
-            background: #007BFF;
-            color: white;
-            padding: 10px 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        nav a {
-            color: white;
-            text-decoration: none;
-            padding: 5px 10px;
-        }
-
-        nav a:hover {
-            background: #0056b3;
-            border-radius: 4px;
-        }
-
         .section {
             background: white;
             padding: 20px;
             border-radius: 8px;
+            border: 1px solid #eee;
             margin-bottom: 20px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
         }
 
         table {
@@ -159,19 +140,31 @@ $sales = $stmt->fetchAll(PDO::FETCH_ASSOC);
         th,
         td {
             padding: 10px;
-            border: 1px solid #ddd;
+            border: 1px solid #eee;
         }
 
         th {
-            background: #f1f1f1;
+            background: #f1f3f5;
+            font-weight: 600;
+        }
+
+        tr:hover td {
+            background: #f8f9fa;
         }
 
         .btn {
-            padding: 6px 12px;
+            padding: 7px 14px;
             border-radius: 4px;
             color: white;
             border: none;
             cursor: pointer;
+            font-weight: 500;
+            transition: filter 0.15s, box-shadow 0.15s;
+        }
+
+        .btn:hover {
+            filter: brightness(0.92);
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
         }
 
         .btn-success {
@@ -185,16 +178,18 @@ $sales = $stmt->fetchAll(PDO::FETCH_ASSOC);
         .msg-success {
             background: #d4edda;
             color: #155724;
-            padding: 10px;
+            padding: 10px 14px;
             border-radius: 4px;
+            border: 1px solid #c3e6cb;
             margin-bottom: 15px;
         }
 
         .msg-error {
             background: #f8d7da;
             color: #721c24;
-            padding: 10px;
+            padding: 10px 14px;
             border-radius: 4px;
+            border: 1px solid #f5c6cb;
             margin-bottom: 15px;
         }
 
@@ -203,7 +198,7 @@ $sales = $stmt->fetchAll(PDO::FETCH_ASSOC);
             height: 60px;
             object-fit: cover;
             border-radius: 4px;
-            border: 1px solid #ccc;
+            border: 1px solid #eee;
         }
     </style>
 
@@ -217,17 +212,13 @@ $sales = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 <body>
 
-    <nav>
-        <strong><?= htmlspecialchars($vendor['store_name']) ?> Dashboard</strong>
-        <div>
-            <a href="index.php">Home</a>
-            <a href="products.php">Browse</a>
-            <a href="add_product.php">Add Product</a>
-            <a href="logout.php">Logout</a>
-        </div>
-    </nav>
+    <?php include 'partials/header.php'; ?>
 
     <div class="container">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+            <h2 style="margin:0;"><?= htmlspecialchars($vendor['store_name']) ?> Dashboard</h2>
+            <a href="add_product.php" class="btn">+ Add Product</a>
+        </div>
 
         <?php if (isset($_GET['msg'])): ?>
             <div class="msg-success"><?= htmlspecialchars($_GET['msg']) ?></div>

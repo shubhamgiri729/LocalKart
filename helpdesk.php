@@ -65,27 +65,6 @@ try {
             color: #333;
         }
 
-        nav {
-            background: #007BFF;
-            color: #fff;
-            padding: 12px 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        nav a {
-            color: #fff;
-            text-decoration: none;
-            margin-left: 10px;
-            padding: 6px 10px;
-            border-radius: 4px;
-        }
-
-        nav a:hover {
-            background: #0056b3;
-        }
-
         .container {
             max-width: 900px;
             margin: 30px auto;
@@ -102,7 +81,8 @@ try {
             background: #fff;
             padding: 20px;
             border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            border: 1px solid #eee;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
             margin-bottom: 20px;
         }
 
@@ -113,6 +93,16 @@ try {
             margin-top: 8px;
             border-radius: 4px;
             border: 1px solid #ccc;
+            font-family: inherit;
+            font-size: 15px;
+            transition: border-color 0.15s, box-shadow 0.15s;
+        }
+
+        input:focus,
+        textarea:focus {
+            outline: none;
+            border-color: #007BFF;
+            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.15);
         }
 
         button {
@@ -122,11 +112,14 @@ try {
             border: none;
             border-radius: 4px;
             cursor: pointer;
+            font-weight: 500;
             margin-top: 10px;
+            transition: background 0.15s, box-shadow 0.15s;
         }
 
         button:hover {
             background: #0056b3;
+            box-shadow: 0 2px 6px rgba(0, 123, 255, 0.25);
         }
 
         .msg-success {
@@ -148,9 +141,10 @@ try {
         }
 
         .ticket {
-            background: #f1f1f1;
+            background: #f8f9fa;
             padding: 15px;
             border-radius: 6px;
+            border: 1px solid #eee;
             margin-bottom: 15px;
         }
 
@@ -187,15 +181,7 @@ try {
 
 <body>
 
-    <nav>
-        <strong>🛍️ LocalKart</strong>
-        <div>
-            <a href="index.php">Home</a>
-            <a href="products.php">Browse</a>
-            <a href="customer.php">Dashboard</a>
-            <a href="logout.php">Logout</a>
-        </div>
-    </nav>
+    <?php include 'partials/header.php'; ?>
 
     <div class="container">
 

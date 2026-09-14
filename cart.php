@@ -105,8 +105,9 @@ if (!empty($_SESSION['cart'])) {
 
     <style>
         body {
-            font-family: Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
             background: #f8f9fa;
+            color: #333;
         }
 
         .container {
@@ -115,64 +116,83 @@ if (!empty($_SESSION['cart'])) {
             padding: 20px;
         }
 
-        nav {
-            background: #007BFF;
-            color: #fff;
-            padding: 12px;
-            display: flex;
-            justify-content: space-between;
-        }
-
-        nav a {
-            color: #fff;
-            margin: 0 6px;
-            text-decoration: none;
-            font-weight: bold;
-        }
-
         table {
             width: 100%;
             border-collapse: collapse;
             margin-top: 20px;
+            background: #fff;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
         }
 
         th,
         td {
-            border: 1px solid #ddd;
-            padding: 10px;
+            border: 1px solid #eee;
+            padding: 12px 10px;
         }
 
         th {
-            background: #f1f1f1;
+            background: #f1f3f5;
+            font-weight: 600;
+        }
+
+        tr:hover td {
+            background: #f8f9fa;
         }
 
         .btn {
-            padding: 6px 12px;
+            display: inline-block;
+            padding: 7px 14px;
             background: #007BFF;
             color: #fff;
             text-decoration: none;
             border-radius: 4px;
+            border: none;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background 0.15s, box-shadow 0.15s;
+        }
+
+        .btn:hover {
+            background: #0056b3;
+            box-shadow: 0 2px 6px rgba(0, 123, 255, 0.25);
         }
 
         .btn-danger {
             background: #DC3545;
         }
 
+        .btn-danger:hover {
+            background: #bb2d3b;
+            box-shadow: 0 2px 6px rgba(220, 53, 69, 0.25);
+        }
+
         .btn-success {
             background: #28A745;
         }
 
+        .btn-success:hover {
+            background: #218838;
+            box-shadow: 0 2px 6px rgba(40, 167, 69, 0.25);
+        }
+
         .msg {
             background: #d4edda;
-            padding: 10px;
+            color: #155724;
+            padding: 10px 14px;
             margin: 10px 0;
+            border-radius: 4px;
+            border: 1px solid #c3e6cb;
         }
 
         .cart-img {
             width: 70px;
             height: 70px;
             object-fit: contain;
-            border: 1px solid #ccc;
+            border: 1px solid #eee;
+            border-radius: 4px;
+            background: #fafafa;
         }
 
         .total {
@@ -180,21 +200,14 @@ if (!empty($_SESSION['cart'])) {
             font-size: 18px;
             font-weight: bold;
             margin-top: 15px;
+            color: #007BFF;
         }
     </style>
 </head>
 
 <body>
 
-    <nav>
-        <strong>🛍️ LocalKart</strong>
-        <div>
-            <a href="index.php">Home</a>
-            <a href="products.php">Products</a>
-            <a href="customer.php">Dashboard</a>
-            <a href="logout.php">Logout</a>
-        </div>
-    </nav>
+    <?php include 'partials/header.php'; ?>
 
     <div class="container">
         <h1>🛒 Shopping Cart</h1>

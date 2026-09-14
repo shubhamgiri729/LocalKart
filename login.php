@@ -51,22 +51,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         body {
-            font-family: Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
             background: #f8f9fa;
+            color: #333;
             min-height: 100vh;
-        }
-
-        nav {
-            background: #007BFF;
-            color: white;
-            padding: 10px 20px;
-            display: flex;
-            justify-content: space-between;
-        }
-
-        nav a {
-            color: white;
-            text-decoration: none;
         }
 
         .container {
@@ -80,9 +68,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             background: white;
             padding: 40px;
             border-radius: 8px;
+            border: 1px solid #eee;
             width: 100%;
             max-width: 400px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
         }
 
         h2 {
@@ -92,17 +81,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         label {
-            font-weight: bold;
+            font-weight: 600;
             margin-top: 10px;
             display: block;
+            color: #555;
         }
 
         input {
             width: 100%;
             padding: 12px;
-            margin-top: 5px;
-            border: 1px solid #ddd;
+            margin-top: 6px;
+            border: 1px solid #ccc;
             border-radius: 4px;
+            font-family: inherit;
+            font-size: 15px;
+            transition: border-color 0.15s, box-shadow 0.15s;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #007BFF;
+            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.15);
         }
 
         button {
@@ -112,19 +111,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             padding: 12px;
             border: none;
             border-radius: 4px;
+            font-weight: 500;
+            font-size: 15px;
             margin-top: 15px;
             cursor: pointer;
+            transition: background 0.15s, box-shadow 0.15s;
         }
 
         button:hover {
             background: #0056b3;
+            box-shadow: 0 2px 6px rgba(0, 123, 255, 0.25);
         }
 
         .msg-error {
             background: #f8d7da;
             color: #721c24;
-            padding: 10px;
+            padding: 10px 14px;
             border-radius: 4px;
+            border: 1px solid #f5c6cb;
             margin-bottom: 15px;
             text-align: center;
         }
@@ -145,10 +149,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <body>
 
-    <nav>
-        <strong>Multi-Vendor Marketplace</strong>
-        <a href="index.php">Home</a>
-    </nav>
+    <?php include 'partials/header.php'; ?>
 
     <div class="container">
         <div class="login-form">

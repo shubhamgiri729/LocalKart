@@ -37,24 +37,10 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     <style>
         body {
-            font-family: Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
             background: #f8f9fa;
             margin: 0;
-        }
-
-        nav {
-            background: #007BFF;
-            padding: 10px 20px;
-            display: flex;
-            justify-content: space-between;
-            color: white;
-        }
-
-        nav a {
-            color: white;
-            text-decoration: none;
-            margin-left: 10px;
-            font-weight: bold;
+            color: #333;
         }
 
         .container {
@@ -79,9 +65,15 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
             background: white;
             padding: 15px;
             border-radius: 10px;
-            border: 1px solid #ddd;
+            border: 1px solid #eee;
             text-align: center;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+            transition: box-shadow 0.15s, transform 0.15s;
+        }
+
+        .product:hover {
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+            transform: translateY(-2px);
         }
 
         .product-img {
@@ -96,6 +88,7 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         .product h3 {
             color: #007BFF;
+            margin-bottom: 8px;
         }
 
         .btn {
@@ -106,30 +99,20 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
             text-decoration: none;
             border-radius: 5px;
             margin-top: 10px;
+            font-weight: 500;
+            transition: background 0.15s, box-shadow 0.15s;
         }
 
         .btn:hover {
             background: #0056b3;
+            box-shadow: 0 2px 6px rgba(0, 123, 255, 0.25);
         }
     </style>
 </head>
 
 <body>
 
-    <nav>
-        <a href="index.php">🏬 Home</a>
-        <div>
-            <?php if (isLoggedIn() && getUserRole() === 'customer'): ?>
-                <a href="helpdesk.php">Help Desk</a>
-                <a href="cart.php">🛒 Cart</a>
-                <a href="logout.php">Logout</a>
-            <?php else: ?>
-                <a href="helpdesk.php">Help Desk</a>
-                <a href="login.php">Login</a>
-                <a href="register.php">Register</a>
-            <?php endif; ?>
-        </div>
-    </nav>
+    <?php include 'partials/header.php'; ?>
 
     <div class="container">
         <h1><?= htmlspecialchars($store['store_name']) ?></h1>

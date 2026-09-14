@@ -76,17 +76,13 @@ $categories = $pdo->query("SELECT * FROM categories ORDER BY name")->fetchAll(PD
 
 <body>
 
-    <nav class="navbar">
-        <strong>Admin Panel</strong>
-        <div>
-            <a href="index.php">Home</a>
-            <a href="products.php">Products</a>
-            <a href="admin_helpdesk.php">Helpdesk</a>
-            <a href="logout.php">Logout</a>
-        </div>
-    </nav>
+    <?php include 'partials/header.php'; ?>
 
     <div class="container">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+            <h2 style="margin:0;">Admin Panel</h2>
+            <a href="admin_helpdesk.php" class="btn">Manage Tickets</a>
+        </div>
 
         <?= $message ?>
 

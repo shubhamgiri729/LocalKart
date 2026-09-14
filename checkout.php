@@ -71,11 +71,8 @@ try {
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; line-height: 1.6; color: #333; background: #f8f9fa; }
         .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
-        nav { background: #007BFF; color: white; padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 100; }
-        nav a { color: white; text-decoration: none; padding: 5px 10px; border-radius: 4px; transition: background 0.3s; }
-        nav a:hover { background: #0056b3; }
         h2, h3 { color: #007BFF; margin-bottom: 15px; }
-        .section { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        .section { background: white; padding: 20px; border-radius: 8px; border: 1px solid #eee; box-shadow: 0 1px 3px rgba(0,0,0,0.06); margin-bottom: 20px; }
         .form-group { margin-bottom: 15px; display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
         .form-group label { font-weight: bold; display: block; margin-bottom: 5px; color: #555; }
         .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 16px; }
@@ -96,7 +93,6 @@ try {
         .msg-success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
         @media (max-width: 768px) {
             .form-group { grid-template-columns: 1fr; gap: 10px; }
-            nav { flex-direction: column; gap: 10px; padding: 10px; }
             .section { padding: 15px; }
             .table-wrapper { overflow-x: auto; }
             input, select, textarea { font-size: 18px; } /* Mobile-friendly input size */
@@ -105,16 +101,7 @@ try {
     </style>
 </head>
 <body>
-    <nav>
-        <div><strong>Checkout - Multi-Vendor eCommerce</strong></div>
-        <div>
-            <a href="helpdesk.php">Help Desk</a>
-            <a href="customer.php">My Dashboard</a> |
-            <a href="cart.php">Cart (<?php echo count($cartItems); ?> items)</a> |
-            <a href="products.php">Continue Shopping</a> |
-            <a href="logout.php">Logout</a>
-        </div>
-    </nav>
+    <?php include 'partials/header.php'; ?>
 
     <div class="container">
         <?php if ($error): ?>

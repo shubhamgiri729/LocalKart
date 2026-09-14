@@ -36,6 +36,11 @@ if (isset($_GET['action'], $_GET['id'])) {
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_cart'])) {
     foreach ($_POST['quantity'] as $id => $qty) {
+        // $id comes straight from POST array keys (user-controlled). Casting to int here
+        // is what stops it from later being concatenated, unescaped, into a raw SQL query
+        // below — an attacker could otherwise send a form field like
+        // quantity[1) OR 1=1 --]=1 as the array key.
+        $id = (int)$id;
         $qty = max(0, (int)$qty);
         if ($qty > 0) {
             $_SESSION['cart'][$id] = $qty;
@@ -51,15 +56,24 @@ $cartItems = [];
 $total = 0;
 
 if (!empty($_SESSION['cart'])) {
-    $ids = implode(',', array_keys($_SESSION['cart']));
+    // Defense in depth: even though cart keys are cast to int above and by the (int)$_GET['id']
+    // cast on add, we never trust session data enough to interpolate it directly into SQL.
+    // Build the IN (...) clause with bound placeholders instead of a hand-built string.
+    $cartIds = array_map('intval', array_keys($_SESSION['cart']));
+    $placeholders = implode(',', array_fill(0, count($cartIds), '?'));
+    $types = str_repeat('i', count($cartIds));
+
     $sql = "
         SELECT p.*, v.store_name
         FROM products p
         JOIN vendors v ON p.vendor_id = v.id
-        WHERE p.id IN ($ids)
+        WHERE p.id IN ($placeholders)
     ";
 
-    $result = $conn->query($sql);
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param($types, ...$cartIds);
+    $stmt->execute();
+    $result = $stmt->get_result();
 
     while ($row = $result->fetch_assoc()) {
         $qty = $_SESSION['cart'][$row['id']];

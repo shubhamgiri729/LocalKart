@@ -2,10 +2,38 @@
 
 session_start();
 
-define('DB_HOST', 'localhost');
-define('DB_USER', 'root');
-define('DB_PASS', '');
-define('DB_NAME', 'multi_vendor_ecommerce');
+/**
+ * Minimal .env loader — no Composer/dotenv dependency needed. Reads KEY=VALUE lines from a
+ * .env file in the same directory (which is git-ignored, see .gitignore) and exposes them via
+ * getenv(). Lines starting with # are treated as comments and skipped.
+ */
+function loadEnv(string $path): void
+{
+    if (!file_exists($path)) {
+        return;
+    }
+
+    foreach (file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) as $line) {
+        $line = trim($line);
+        if ($line === '' || str_starts_with($line, '#') || !str_contains($line, '=')) {
+            continue;
+        }
+
+        [$key, $value] = array_map('trim', explode('=', $line, 2));
+        $value = trim($value, "\"'");
+
+        if (getenv($key) === false) {
+            putenv("$key=$value");
+        }
+    }
+}
+
+loadEnv(__DIR__ . '/.env');
+
+define('DB_HOST', getenv('DB_HOST') ?: 'localhost');
+define('DB_USER', getenv('DB_USER') ?: 'root');
+define('DB_PASS', getenv('DB_PASS') ?: '');
+define('DB_NAME', getenv('DB_NAME') ?: 'multi_vendor_ecommerce');
 
 try {
     $pdo = new PDO(
@@ -19,8 +47,10 @@ try {
     die("Database Connection Failed: " . $e->getMessage());
 }
 
-define('GROQ_API_KEY', 'REMOVED');
-
+// Gemini configuration.
+// The API key must come from the environment and must never be hardcoded.
+define('GEMINI_API_KEY', getenv('GEMINI_API_KEY') ?: '');
+define('GEMINI_MODEL', getenv('GEMINI_MODEL') ?: 'gemini-3.6-flash');
 
 /**
 

@@ -15,11 +15,9 @@ if (!$userMessage) {
 
 $lowerMsg = strtolower($userMessage);
 
-// --- [KEEPING YOUR DATABASE LOGIC THE SAME] ---
 
 if (preg_match('/price of (.+)/i', $userMessage, $matches)) {
     $productName = trim($matches[1]);
-    // Note: Ensure your column names match your DB (e.g., 'name' vs 'product_name')
     $stmt = $pdo->prepare("SELECT name, price, image, description FROM products WHERE name LIKE ?");
     $stmt->execute(["%$productName%"]);
     $product = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -41,22 +39,35 @@ if (preg_match('/price of (.+)/i', $userMessage, $matches)) {
 }
 
 
+if (!GEMINI_API_KEY) {
+    echo json_encode(["reply" => "⚠️ Chat assistant is temporarily unavailable (no API key configured)."]);
+    exit;
+}
+
 $systemPrompt = "You are a helpful chatbot for a multi-vendor marketplace. Keep answers short.";
 
+// Gemini's REST API (generateContent) has no separate "system" role field the way OpenAI/Groq
+// do — the recommended way to set behavior is a top-level system_instruction, with the actual
+// conversation going in "contents".
 $data = [
-    "model" => "llama3-8b-8192", 
-    "messages" => [
-        ["role" => "system", "content" => $systemPrompt],
-        ["role" => "user", "content" => $userMessage]
+    "system_instruction" => [
+        "parts" => [["text" => $systemPrompt]]
     ],
-    "temperature" => 0.7,
-    "max_tokens" => 300
+    "contents" => [
+        ["role" => "user", "parts" => [["text" => $userMessage]]]
+    ],
+    "generationConfig" => [
+        "temperature" => 0.7,
+        "maxOutputTokens" => 300
+    ]
 ];
 
-$ch = curl_init("https://api.groq.com/openai/v1/chat/completions");
+$url = "https://generativelanguage.googleapis.com/v1beta/models/" . GEMINI_MODEL . ":generateContent";
+
+$ch = curl_init($url);
 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 curl_setopt($ch, CURLOPT_HTTPHEADER, [
-    "Authorization: Bearer " . GROQ_API_KEY, 
+    "x-goog-api-key: " . GEMINI_API_KEY,
     "Content-Type: application/json"
 ]);
 curl_setopt($ch, CURLOPT_POST, true);
@@ -77,5 +88,5 @@ if (isset($result['error'])) {
     exit;
 }
 
-$reply = $result['choices'][0]['message']['content'] ?? "Sorry, I couldn't find an answer.";
+$reply = $result['candidates'][0]['content']['parts'][0]['text'] ?? "Sorry, I couldn't find an answer.";
 echo json_encode(["reply" => $reply]);

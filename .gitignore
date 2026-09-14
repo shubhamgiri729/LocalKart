@@ -1,0 +1,8 @@
+# Secrets — never commit the real .env, only .env.example
+.env
+
+# OS/editor cruft
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

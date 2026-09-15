@@ -10,20 +10,23 @@ $userId = $_SESSION['user_id'];
 $success = '';
 $error = '';
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $subject = trim($_POST['subject'] ?? '');
-    $message = trim($_POST['message'] ?? '');
+$vendors = $pdo->query("SELECT id, store_name FROM vendors ORDER BY store_name")->fetchAll(PDO::FETCH_ASSOC);
 
-    if ($subject === '' || $message === '') {
-        $error = "Please fill in all fields.";
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $vendorId = (int) ($_POST['vendor_id'] ?? 0);
+    $subject  = trim($_POST['subject'] ?? '');
+    $message  = trim($_POST['message'] ?? '');
+
+    if ($vendorId <= 0 || $subject === '' || $message === '') {
+        $error = "Please choose a shop and fill in all fields.";
     } else {
         try {
             $stmt = $pdo->prepare(
-                "INSERT INTO helpdesk (user_id, subject, message, status)
-                 VALUES (?, ?, ?, 'open')"
+                "INSERT INTO helpdesk (user_id, vendor_id, subject, message, status)
+                 VALUES (?, ?, ?, ?, 'open')"
             );
-            $stmt->execute([$userId, $subject, $message]);
-            $success = "Your support ticket has been submitted successfully.";
+            $stmt->execute([$userId, $vendorId, $subject, $message]);
+            $success = "Your ticket has been sent to the shop. They'll respond here.";
         } catch (PDOException $e) {
             $error = "Unable to submit ticket. Please try again later.";
         }
@@ -33,9 +36,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $tickets = [];
 try {
     $stmt = $pdo->prepare(
-        "SELECT * FROM helpdesk
-         WHERE user_id = ?
-         ORDER BY created_at DESC"
+        "SELECT h.*, v.store_name
+         FROM helpdesk h
+         JOIN vendors v ON h.vendor_id = v.id
+         WHERE h.user_id = ?
+         ORDER BY h.created_at DESC"
     );
     $stmt->execute([$userId]);
     $tickets = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -43,200 +48,152 @@ try {
     $error = "Unable to load tickets.";
 }
 ?>
-
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-    <meta charset="UTF-8">
-    <title>Help Desk - Customer Support</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Help Desk — LocalKart Support</title>
+<style>
+  :root{
+    --paper:#FBF8F1;
+    --paper-alt:#F1E9DA;
+    --ink:#23291D;
+    --ink-soft:#565C4E;
+    --line:#E3DBC8;
+    --moss:#2F5233;
+    --moss-dark:#20391F;
+    --marigold:#E7A62F;
+    --marigold-dark:#C98A1B;
+    --brick:#A63D2F;
+    --white:#FFFFFF;
+    --radius-card:10px;
+    --radius-pill:999px;
+    --shadow-soft: 0 1px 2px rgba(35,41,29,0.06), 0 6px 16px rgba(35,41,29,0.05);
+  }
+  *{box-sizing:border-box;}
+  body{ margin:0; background:var(--paper); color:var(--ink); font-family:'Inter',sans-serif; line-height:1.55; }
+  h1,h2,h3,h4{ font-family:'Fraunces',serif; color:var(--ink); margin:0; font-weight:600; letter-spacing:-0.01em; }
+  p{margin:0;} a{color:inherit; text-decoration:none;}
+  .wrap{max-width:900px; margin:0 auto; padding:44px 28px 70px;}
 
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+  .page-title{ margin-bottom:28px; }
+  .page-title h2{ font-size:28px; color:var(--moss-dark); }
+  .page-title p{ color:var(--ink-soft); font-size:14.5px; margin-top:4px; }
 
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
-            background: #f8f9fa;
-            color: #333;
-        }
+  .section{ background:var(--white); padding:28px; border-radius:var(--radius-card); border:1px solid var(--line); box-shadow:var(--shadow-soft); margin-bottom:24px; }
+  .section h3{ font-size:20px; margin-bottom:18px; color:var(--ink); }
 
-        .container {
-            max-width: 900px;
-            margin: 30px auto;
-            padding: 20px;
-        }
+  label{ display:block; font-weight:500; font-size:13.5px; color:var(--ink-soft); margin-bottom:6px; }
+  input, textarea, select{
+    width:100%; padding:11px 14px; margin-bottom:16px; border-radius:8px; border:1px solid var(--line);
+    font:inherit; font-size:14.5px; background:var(--white); color:var(--ink); transition:border-color .15s, box-shadow .15s;
+  }
+  input:focus, textarea:focus, select:focus{
+    outline:none; border-color:var(--moss); box-shadow:0 0 0 3px rgba(47,82,51,0.12);
+  }
 
-        h2,
-        h3 {
-            color: #007BFF;
-            margin-bottom: 15px;
-        }
+  .btn{
+    display:inline-flex; align-items:center; justify-content:center; gap:8px; border:none; cursor:pointer;
+    font-family:inherit; font-weight:600; font-size:14px; padding:11px 24px; border-radius:var(--radius-pill);
+    background:var(--moss); color:#fff; transition:background .15s, box-shadow .15s;
+  }
+  .btn:hover{ background:var(--moss-dark); box-shadow:0 6px 16px rgba(47,82,51,.28); }
 
-        .section {
-            background: #fff;
-            padding: 20px;
-            border-radius: 8px;
-            border: 1px solid #eee;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
-            margin-bottom: 20px;
-        }
+  .msg-success{ background:#E2EFE3; color:var(--moss-dark); padding:12px 16px; border-radius:8px; margin-bottom:20px; border:1px solid #C4E2C7; font-size:14px; }
+  .msg-error{ background:#FDF2F0; color:var(--brick); padding:12px 16px; border-radius:8px; margin-bottom:20px; border:1px solid #F8D7DA; font-size:14px; }
 
-        input,
-        textarea {
-            width: 100%;
-            padding: 10px;
-            margin-top: 8px;
-            border-radius: 4px;
-            border: 1px solid #ccc;
-            font-family: inherit;
-            font-size: 15px;
-            transition: border-color 0.15s, box-shadow 0.15s;
-        }
+  .ticket{ background:var(--paper); padding:20px; border-radius:8px; border:1px solid var(--line); margin-bottom:16px; opacity:0; transform:translateY(10px); animation:riseIn .35s ease forwards; }
+  @keyframes riseIn{ to{ opacity:1; transform:translateY(0); } }
+  .ticket-header{ display:flex; justify-content:space-between; align-items:flex-start; gap:10px; margin-bottom:6px; flex-wrap:wrap; }
+  .ticket-subject{ font-weight:600; font-size:16px; color:var(--ink); }
+  .ticket-shop{ font-size:12.5px; color:var(--ink-soft); margin-bottom:10px; }
+  .ticket-shop strong{ color:var(--moss-dark); }
 
-        input:focus,
-        textarea:focus {
-            outline: none;
-            border-color: #007BFF;
-            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.15);
-        }
+  .status{ padding:4px 10px; border-radius:var(--radius-pill); font-size:11.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.03em; white-space:nowrap; }
+  .status.open{ background:var(--marigold); color:#fff; }
+  .status.answered{ background:#3178C6; color:#fff; }
+  .status.closed{ background:var(--ink-soft); color:#fff; }
 
-        button {
-            background: #007BFF;
-            color: #fff;
-            padding: 10px 18px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-weight: 500;
-            margin-top: 10px;
-            transition: background 0.15s, box-shadow 0.15s;
-        }
-
-        button:hover {
-            background: #0056b3;
-            box-shadow: 0 2px 6px rgba(0, 123, 255, 0.25);
-        }
-
-        .msg-success {
-            background: #d4edda;
-            color: #155724;
-            padding: 10px;
-            border-radius: 4px;
-            margin-bottom: 15px;
-            border: 1px solid #c3e6cb;
-        }
-
-        .msg-error {
-            background: #f8d7da;
-            color: #721c24;
-            padding: 10px;
-            border-radius: 4px;
-            margin-bottom: 15px;
-            border: 1px solid #f5c6cb;
-        }
-
-        .ticket {
-            background: #f8f9fa;
-            padding: 15px;
-            border-radius: 6px;
-            border: 1px solid #eee;
-            margin-bottom: 15px;
-        }
-
-        .status {
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 13px;
-            display: inline-block;
-        }
-
-        .open {
-            background: #ffc107;
-        }
-
-        .in_progress {
-            background: #17a2b8;
-            color: #fff;
-        }
-
-        .closed {
-            background: #6c757d;
-            color: #fff;
-        }
-
-        .response {
-            background: #e9ffe9;
-            padding: 10px;
-            margin-top: 10px;
-            border-left: 4px solid #28a745;
-            border-radius: 4px;
-        }
-    </style>
+  .ticket-msg{ color:var(--ink-soft); font-size:14px; margin-bottom:14px; white-space:pre-line; }
+  .response{ background:var(--white); padding:14px; margin-top:12px; border-left:3px solid var(--moss); border-radius:4px; font-size:13.5px; }
+  .response strong{ color:var(--moss-dark); display:block; margin-bottom:4px; }
+  .no-reply{ font-size:13px; color:var(--ink-soft); font-style:italic; }
+</style>
 </head>
-
 <body>
 
-    <?php include 'partials/header.php'; ?>
+<?php include 'partials/header.php'; ?>
 
-    <div class="container">
-
-        <?php if ($success): ?>
-            <div class="msg-success"><?= htmlspecialchars($success) ?></div>
-        <?php endif; ?>
-
-        <?php if ($error): ?>
-            <div class="msg-error"><?= htmlspecialchars($error) ?></div>
-        <?php endif; ?>
-
-        <div class="section">
-            <h3>Create Support Ticket</h3>
-            <form method="POST">
-                <label>Subject</label>
-                <input type="text" name="subject" required>
-
-                <label>Message</label>
-                <textarea name="message" rows="5" required></textarea>
-
-                <button type="submit">Submit Ticket</button>
-            </form>
-        </div>
-
-        <div class="section">
-            <h3>Your Tickets</h3>
-
-            <?php if (empty($tickets)): ?>
-                <p>No tickets found.</p>
-            <?php else: ?>
-                <?php foreach ($tickets as $ticket): ?>
-                    <div class="ticket">
-                        <p><strong>Subject:</strong> <?= htmlspecialchars($ticket['subject']) ?></p>
-                        <p><strong>Message:</strong><br><?= nl2br(htmlspecialchars($ticket['message'])) ?></p>
-                        <p>
-                            <strong>Status:</strong>
-                            <span class="status <?= $ticket['status'] ?>">
-                                <?= ucfirst(str_replace('_', ' ', $ticket['status'])) ?>
-                            </span>
-                        </p>
-
-                        <?php if (!empty($ticket['response'])): ?>
-                            <div class="response">
-                                <strong>Admin Reply:</strong><br>
-                                <?= nl2br(htmlspecialchars($ticket['response'])) ?>
-                            </div>
-                        <?php else: ?>
-                            <em>No reply yet.</em>
-                        <?php endif; ?>
-                    </div>
-                <?php endforeach; ?>
-            <?php endif; ?>
-        </div>
-
+<div class="wrap">
+    <div class="page-title">
+        <h2>Customer Support Help Desk</h2>
+        <p>Pick the shop your question is about — your ticket goes straight to them.</p>
     </div>
-</body>
 
+    <?php if ($success): ?>
+        <div class="msg-success"><?= htmlspecialchars($success) ?></div>
+    <?php endif; ?>
+
+    <?php if ($error): ?>
+        <div class="msg-error"><?= htmlspecialchars($error) ?></div>
+    <?php endif; ?>
+
+    <div class="section">
+        <h3>Create Support Ticket</h3>
+        <form method="POST">
+            <label>Which shop is this about?</label>
+            <select name="vendor_id" required>
+                <option value="">Select a shop…</option>
+                <?php foreach ($vendors as $vendor): ?>
+                    <option value="<?= $vendor['id'] ?>">
+                        <?= htmlspecialchars($vendor['store_name']) ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
+
+            <label>Issue Subject</label>
+            <input type="text" name="subject" placeholder="Briefly describe your issue..." required>
+
+            <label>Detailed Message</label>
+            <textarea name="message" rows="5" placeholder="Provide order number, product name, or specific details..." required></textarea>
+
+            <button type="submit" class="btn">Submit Ticket</button>
+        </form>
+    </div>
+
+    <div class="section">
+        <h3>Your Support Tickets</h3>
+
+        <?php if (empty($tickets)): ?>
+            <p style="color:var(--ink-soft); font-size:14px;">You haven't submitted any support tickets yet.</p>
+        <?php else: ?>
+            <?php foreach ($tickets as $i => $ticket): ?>
+                <div class="ticket" style="animation-delay:<?= $i * 0.05 ?>s">
+                    <div class="ticket-header">
+                        <span class="ticket-subject"><?= htmlspecialchars($ticket['subject']) ?></span>
+                        <span class="status <?= htmlspecialchars($ticket['status']) ?>">
+                            <?= ucfirst($ticket['status']) ?>
+                        </span>
+                    </div>
+                    <div class="ticket-shop">To: <strong><?= htmlspecialchars($ticket['store_name']) ?></strong></div>
+                    <div class="ticket-msg"><?= htmlspecialchars($ticket['message']) ?></div>
+
+                    <?php if (!empty($ticket['response'])): ?>
+                        <div class="response">
+                            <strong><?= htmlspecialchars($ticket['store_name']) ?> replied:</strong>
+                            <?= htmlspecialchars($ticket['response']) ?>
+                        </div>
+                    <?php else: ?>
+                        <div class="no-reply">Awaiting a reply from the shop.</div>
+                    <?php endif; ?>
+                </div>
+            <?php endforeach; ?>
+        <?php endif; ?>
+    </div>
+</div>
+
+<?php include 'partials/footer.php'; ?>
+
+</body>
 </html>

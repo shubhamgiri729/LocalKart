@@ -1,5 +1,4 @@
 <?php
-
 require_once 'config.php';
 
 if (isLoggedIn()) {
@@ -10,7 +9,6 @@ $error = '';
 $username = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-
     $username = trim($_POST['username'] ?? '');
     $password = $_POST['password'] ?? '';
 
@@ -22,7 +20,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if ($user && password_verify($password, $user['password'])) {
-
             $_SESSION['user_id']  = $user['id'];
             $_SESSION['username'] = $user['username'];
             $_SESSION['role']     = $user['role'];
@@ -37,123 +34,160 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 ?>
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - Multi-Vendor Marketplace</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Login — LocalKart</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #FBF8F1;
+    --paper-alt: #F1E9DA;
+    --ink: #23291D;
+    --ink-soft: #565C4E;
+    --line: #E3DBC8;
+    --moss: #2F5233;
+    --moss-dark: #20391F;
+    --marigold: #E7A62F;
+    --marigold-dark: #C98A1B;
+    --brick: #A63D2F;
+    --white: #FFFFFF;
+    --radius-card: 12px;
+    --radius-pill: 999px;
+    --shadow-soft: 0 1px 2px rgba(35,41,29,0.06), 0 6px 16px rgba(35,41,29,0.05);
+    --shadow-lift: 0 10px 28px rgba(35,41,29,0.12);
+  }
 
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'Inter', sans-serif;
+    line-height: 1.55;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
 
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
-            background: #f8f9fa;
-            color: #333;
-            min-height: 100vh;
-        }
+  h1, h2, h3, h4 {
+    font-family: 'Fraunces', serif;
+    color: var(--ink);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
 
-        .container {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-        }
+  a { color: inherit; text-decoration: none; }
 
-        .login-form {
-            background: white;
-            padding: 40px;
-            border-radius: 8px;
-            border: 1px solid #eee;
-            width: 100%;
-            max-width: 400px;
-            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
-        }
+  .container {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 40px 20px;
+  }
 
-        h2 {
-            color: #007BFF;
-            text-align: center;
-            margin-bottom: 20px;
-        }
+  .login-form {
+    background: var(--white);
+    padding: 40px;
+    border-radius: var(--radius-card);
+    border: 1px solid var(--line);
+    width: 100%;
+    max-width: 420px;
+    box-shadow: var(--shadow-soft);
+  }
 
-        label {
-            font-weight: 600;
-            margin-top: 10px;
-            display: block;
-            color: #555;
-        }
+  h2 {
+    font-size: 26px;
+    text-align: center;
+    margin-bottom: 24px;
+  }
 
-        input {
-            width: 100%;
-            padding: 12px;
-            margin-top: 6px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            font-family: inherit;
-            font-size: 15px;
-            transition: border-color 0.15s, box-shadow 0.15s;
-        }
+  label {
+    font-weight: 600;
+    margin-top: 16px;
+    display: block;
+    color: var(--ink);
+    font-size: 13.5px;
+  }
 
-        input:focus {
-            outline: none;
-            border-color: #007BFF;
-            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.15);
-        }
+  input {
+    width: 100%;
+    padding: 11px 14px;
+    margin-top: 6px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 14px;
+    background: var(--white);
+    color: var(--ink);
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
 
-        button {
-            width: 100%;
-            background: #007BFF;
-            color: white;
-            padding: 12px;
-            border: none;
-            border-radius: 4px;
-            font-weight: 500;
-            font-size: 15px;
-            margin-top: 15px;
-            cursor: pointer;
-            transition: background 0.15s, box-shadow 0.15s;
-        }
+  input:focus {
+    outline: none;
+    border-color: var(--moss);
+    box-shadow: 0 0 0 3px rgba(47, 82, 51, 0.15);
+  }
 
-        button:hover {
-            background: #0056b3;
-            box-shadow: 0 2px 6px rgba(0, 123, 255, 0.25);
-        }
+  button {
+    width: 100%;
+    background: var(--moss);
+    color: white;
+    padding: 12px;
+    border: none;
+    border-radius: var(--radius-pill);
+    font-weight: 600;
+    font-size: 14px;
+    margin-top: 24px;
+    cursor: pointer;
+    transition: background 0.15s, box-shadow 0.15s;
+  }
 
-        .msg-error {
-            background: #f8d7da;
-            color: #721c24;
-            padding: 10px 14px;
-            border-radius: 4px;
-            border: 1px solid #f5c6cb;
-            margin-bottom: 15px;
-            text-align: center;
-        }
+  button:hover {
+    background: var(--moss-dark);
+    box-shadow: 0 6px 16px rgba(47, 82, 51, 0.28);
+  }
 
-        a {
-            display: block;
-            text-align: center;
-            margin-top: 12px;
-            color: #007BFF;
-            text-decoration: none;
-        }
+  .msg-error {
+    background: #FCE8E6;
+    color: var(--brick);
+    padding: 12px 16px;
+    border-radius: 8px;
+    border: 1px solid #FAD2D0;
+    margin-bottom: 20px;
+    text-align: center;
+    font-size: 14px;
+  }
 
-        a:hover {
-            text-decoration: underline;
-        }
-    </style>
+  .auth-links {
+    margin-top: 20px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .auth-links a {
+    color: var(--ink-soft);
+    font-size: 13.5px;
+    transition: color 0.15s;
+  }
+
+  .auth-links a:hover {
+    color: var(--moss);
+    text-decoration: underline;
+  }
+</style>
 </head>
-
 <body>
 
     <?php include 'partials/header.php'; ?>
 
     <div class="container">
         <div class="login-form">
-            <h2>Login</h2>
+            <h2>Welcome Back</h2>
 
             <?php if ($error): ?>
                 <div class="msg-error"><?= htmlspecialchars($error) ?></div>
@@ -162,19 +196,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <form method="POST">
                 <label for="username">Username</label>
                 <input type="text" id="username" name="username"
-                    value="<?= htmlspecialchars($username) ?>" required>
+                    value="<?= htmlspecialchars($username) ?>" required placeholder="Enter your username">
 
                 <label for="password">Password</label>
-                <input type="password" id="password" name="password" required>
+                <input type="password" id="password" name="password" required placeholder="••••••••">
 
-                <button type="submit">Login</button>
+                <button type="submit">Sign In</button>
             </form>
 
-            <a href="forgot_password.php">Forgot Password?</a>
-            <a href="register.php">Register as Shopkeeper or Customer</a>
+            <div class="auth-links">
+                <a href="forgot_password.php">Forgot Password?</a>
+                <a href="register.php">Don't have an account? Register</a>
+            </div>
         </div>
     </div>
 
-</body>
+    <?php include 'partials/footer.php'; ?>
 
+</body>
 </html>

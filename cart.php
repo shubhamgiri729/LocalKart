@@ -13,7 +13,6 @@ if ($conn->connect_error) {
     die("Database connection failed: " . $conn->connect_error);
 }
 
-
 if (!isset($_SESSION['cart'])) {
     $_SESSION['cart'] = [];
 }
@@ -36,10 +35,6 @@ if (isset($_GET['action'], $_GET['id'])) {
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_cart'])) {
     foreach ($_POST['quantity'] as $id => $qty) {
-        // $id comes straight from POST array keys (user-controlled). Casting to int here
-        // is what stops it from later being concatenated, unescaped, into a raw SQL query
-        // below — an attacker could otherwise send a form field like
-        // quantity[1) OR 1=1 --]=1 as the array key.
         $id = (int)$id;
         $qty = max(0, (int)$qty);
         if ($qty > 0) {
@@ -56,9 +51,6 @@ $cartItems = [];
 $total = 0;
 
 if (!empty($_SESSION['cart'])) {
-    // Defense in depth: even though cart keys are cast to int above and by the (int)$_GET['id']
-    // cast on add, we never trust session data enough to interpolate it directly into SQL.
-    // Build the IN (...) clause with bound placeholders instead of a hand-built string.
     $cartIds = array_map('intval', array_keys($_SESSION['cart']));
     $placeholders = implode(',', array_fill(0, count($cartIds), '?'));
     $types = str_repeat('i', count($cartIds));
@@ -97,134 +89,231 @@ if (!empty($_SESSION['cart'])) {
 ?>
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Shopping Cart</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shopping Cart — LocalKart</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #FBF8F1;
+    --paper-alt: #F1E9DA;
+    --ink: #23291D;
+    --ink-soft: #565C4E;
+    --line: #E3DBC8;
+    --moss: #2F5233;
+    --moss-dark: #20391F;
+    --marigold: #E7A62F;
+    --marigold-dark: #C98A1B;
+    --brick: #A63D2F;
+    --white: #FFFFFF;
+    --radius-card: 12px;
+    --radius-pill: 999px;
+    --shadow-soft: 0 1px 2px rgba(35,41,29,0.06), 0 6px 16px rgba(35,41,29,0.05);
+  }
 
-    <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
-            background: #f8f9fa;
-            color: #333;
-        }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'Inter', sans-serif;
+    line-height: 1.55;
+  }
 
-        .container {
-            max-width: 1200px;
-            margin: 20px auto;
-            padding: 20px;
-        }
+  h1, h2, h3, h4 {
+    font-family: 'Fraunces', serif;
+    color: var(--ink);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
 
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-            background: #fff;
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
-        }
+  a { color: inherit; text-decoration: none; }
 
-        th,
-        td {
-            border: 1px solid #eee;
-            padding: 12px 10px;
-        }
+  .wrap {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 0 28px;
+  }
 
-        th {
-            background: #f1f3f5;
-            font-weight: 600;
-        }
+  .page-head {
+    padding: 40px 0 24px;
+  }
+  .page-head h1 { font-size: 32px; }
 
-        tr:hover td {
-            background: #f8f9fa;
-        }
+  .container {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 0 28px 70px;
+  }
 
-        .btn {
-            display: inline-block;
-            padding: 7px 14px;
-            background: #007BFF;
-            color: #fff;
-            text-decoration: none;
-            border-radius: 4px;
-            border: none;
-            cursor: pointer;
-            font-weight: 500;
-            transition: background 0.15s, box-shadow 0.15s;
-        }
+  .section-card {
+    background: var(--white);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-card);
+    padding: 24px;
+    box-shadow: var(--shadow-soft);
+  }
 
-        .btn:hover {
-            background: #0056b3;
-            box-shadow: 0 2px 6px rgba(0, 123, 255, 0.25);
-        }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 4px;
+    font-size: 14px;
+  }
 
-        .btn-danger {
-            background: #DC3545;
-        }
+  th, td {
+    border-bottom: 1px solid var(--line);
+    padding: 16px 12px;
+    text-align: left;
+    vertical-align: middle;
+  }
 
-        .btn-danger:hover {
-            background: #bb2d3b;
-            box-shadow: 0 2px 6px rgba(220, 53, 69, 0.25);
-        }
+  th {
+    background: var(--paper-alt);
+    font-weight: 600;
+    color: var(--ink);
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
 
-        .btn-success {
-            background: #28A745;
-        }
+  tr:last-child td {
+    border-bottom: none;
+  }
 
-        .btn-success:hover {
-            background: #218838;
-            box-shadow: 0 2px 6px rgba(40, 167, 69, 0.25);
-        }
+  tr:hover td {
+    background: rgba(241, 233, 218, 0.4);
+  }
 
-        .msg {
-            background: #d4edda;
-            color: #155724;
-            padding: 10px 14px;
-            margin: 10px 0;
-            border-radius: 4px;
-            border: 1px solid #c3e6cb;
-        }
+  .cart-img {
+    width: 64px;
+    height: 64px;
+    object-fit: cover;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--paper-alt);
+    display: block;
+  }
 
-        .cart-img {
-            width: 70px;
-            height: 70px;
-            object-fit: contain;
-            border: 1px solid #eee;
-            border-radius: 4px;
-            background: #fafafa;
-        }
+  input[type="number"] {
+    width: 70px;
+    padding: 8px 10px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    font: inherit;
+    font-size: 13.5px;
+    background: var(--white);
+    color: var(--ink);
+  }
 
-        .total {
-            text-align: right;
-            font-size: 18px;
-            font-weight: bold;
-            margin-top: 15px;
-            color: #007BFF;
-        }
-    </style>
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    font-weight: 600;
+    font-size: 14px;
+    padding: 11px 22px;
+    border-radius: var(--radius-pill);
+    transition: background .15s, color .15s, transform .1s, box-shadow .15s;
+  }
+  .btn-primary {
+    background: var(--moss);
+    color: #fff;
+  }
+  .btn-primary:hover {
+    background: var(--moss-dark);
+    box-shadow: 0 6px 16px rgba(47,82,51,.28);
+  }
+  .btn-danger {
+    background: #FCE8E6;
+    color: var(--brick);
+    padding: 8px 14px;
+    font-size: 13px;
+  }
+  .btn-danger:hover {
+    background: var(--brick);
+    color: #fff;
+  }
+  .btn-sm {
+    padding: 8px 16px;
+    font-size: 13px;
+  }
+
+  .msg {
+    background: #E6F4EA;
+    color: #137333;
+    padding: 14px 18px;
+    border-radius: 8px;
+    margin-bottom: 24px;
+    border: 1px solid #CEEAD6;
+    font-size: 14px;
+  }
+
+  .cart-actions-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px solid var(--line);
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  .total-display {
+    font-family: 'Fraunces', serif;
+    font-size: 24px;
+    font-weight: 600;
+    color: var(--ink);
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 40px 0;
+    color: var(--ink-soft);
+  }
+  .empty-state p { margin-bottom: 16px; font-size: 16px; }
+
+  @media (max-width: 768px) {
+    .cart-actions-row { flex-direction: column; align-items: stretch; }
+    .total-display { text-align: center; }
+  }
+</style>
 </head>
 
 <body>
 
-    <?php include 'partials/header.php'; ?>
+<?php include 'partials/header.php'; ?>
 
-    <div class="container">
-        <h1>🛒 Shopping Cart</h1>
+<div class="wrap page-head">
+  <h1>Shopping Cart</h1>
+</div>
 
-        <?php if (isset($_GET['msg'])): ?>
-            <div class="msg"><?php echo htmlspecialchars($_GET['msg']); ?></div>
-        <?php endif; ?>
+<div class="container">
+  <?php if (isset($_GET['msg'])): ?>
+      <div class="msg"><?php echo htmlspecialchars($_GET['msg']); ?></div>
+  <?php endif; ?>
 
-        <?php if (empty($cartItems)): ?>
-            <p>Your cart is empty.</p>
-            <a href="products.php" class="btn btn-success">Browse Products</a>
-        <?php else: ?>
+  <div class="section-card">
+    <?php if (empty($cartItems)): ?>
+        <div class="empty-state">
+          <p>Your cart is currently empty.</p>
+          <a href="products.php" class="btn btn-primary">Browse Products 🛍️</a>
+        </div>
+    <?php else: ?>
 
-            <form method="POST">
-                <input type="hidden" name="update_cart" value="1">
+        <form method="POST">
+            <input type="hidden" name="update_cart" value="1">
 
-                <table>
+            <div style="overflow-x: auto;">
+              <table>
+                  <thead>
                     <tr>
                         <th>Image</th>
                         <th>Product</th>
@@ -234,12 +323,13 @@ if (!empty($_SESSION['cart'])) {
                         <th>Subtotal</th>
                         <th>Action</th>
                     </tr>
-
+                  </thead>
+                  <tbody>
                     <?php foreach ($cartItems as $item): ?>
                         <tr>
                             <td>
                                 <?php
-                                $img = "uploads/products/" . $item['image'];
+                                $img = "uploads/products/" . htmlspecialchars($item['image']);
                                 if (!empty($item['image']) && file_exists($img)) {
                                     echo "<img src='$img' class='cart-img'>";
                                 } else {
@@ -247,36 +337,45 @@ if (!empty($_SESSION['cart'])) {
                                 }
                                 ?>
                             </td>
-                            <td><?php echo htmlspecialchars($item['name']); ?></td>
-                            <td><?php echo htmlspecialchars($item['store_name']); ?></td>
+                            <td><strong><?php echo htmlspecialchars($item['name']); ?></strong></td>
+                            <td><span style="color: var(--ink-soft); font-size: 13px;"><?php echo htmlspecialchars($item['store_name']); ?></span></td>
                             <td>₹<?php echo number_format($item['price'], 2); ?></td>
                             <td>
                                 <input type="number" name="quantity[<?php echo $item['id']; ?>]"
-                                    value="<?php echo $item['quantity']; ?>" min="0">
+                                    value="<?php echo $item['quantity']; ?>" min="0" max="<?php echo $item['stock']; ?>">
                             </td>
-                            <td>₹<?php echo number_format($item['subtotal'], 2); ?></td>
+                            <td><strong>₹<?php echo number_format($item['subtotal'], 2); ?></strong></td>
                             <td>
                                 <a class="btn btn-danger"
                                     href="cart.php?action=remove&id=<?php echo $item['id']; ?>"
-                                    onclick="return confirm('Remove item?')">Remove</a>
+                                    onclick="return confirm('Remove item from cart?')">Remove</a>
                             </td>
                         </tr>
                     <?php endforeach; ?>
+                  </tbody>
+              </table>
+            </div>
 
-                </table>
-
-                <div style="text-align:right;margin-top:15px;">
-                    <button class="btn btn-success" type="submit">Update Cart</button>
-                    <a href="checkout.php" class="btn btn-success">Checkout</a>
+            <div class="cart-actions-row">
+                <div style="display: flex; gap: 12px;">
+                    <button class="btn btn-sm btn-primary" style="background: var(--ink-soft);" type="submit">Update Cart</button>
+                    <a href="products.php" class="btn btn-sm btn-primary" style="background: transparent; color: var(--ink); border: 1px solid var(--line);">Continue Shopping</a>
                 </div>
+                
+                <div style="display: flex; align-items: center; gap: 24px;">
+                    <div class="total-display">Total: ₹<?php echo number_format($total, 2); ?></div>
+                    <a href="checkout.php" class="btn btn-primary">Proceed to Checkout</a>
+                </div>
+            </div>
+        </form>
 
-                <div class="total">Total: ₹<?php echo number_format($total, 2); ?></div>
-            </form>
+    <?php endif; ?>
+  </div>
+</div>
 
-        <?php endif; ?>
-    </div>
+<?php include 'partials/footer.php'; ?>
+
 </body>
-
 </html>
 
 <?php $conn->close(); ?>

@@ -1,0 +1,77 @@
+.site-footer {
+    background: #23291D;
+    color: #B9B4A2;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+    margin-top: 40px;
+    padding: 48px 24px 20px;
+}
+
+.footer-top {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr 1fr 1fr;
+    gap: 32px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.footer-brand .footer-logo {
+    color: #fff;
+    text-decoration: none;
+    font-weight: 700;
+    font-size: 1.15em;
+}
+
+.footer-brand p {
+    margin-top: 14px;
+    font-size: 0.9em;
+    line-height: 1.6;
+    color: #8B8674;
+    max-width: 32ch;
+}
+
+.footer-col h6 {
+    color: #fff;
+    font-size: 0.85em;
+    font-weight: 700;
+    margin: 0 0 14px;
+}
+
+.footer-col a {
+    display: block;
+    color: #B9B4A2;
+    text-decoration: none;
+    font-size: 0.9em;
+    padding: 5px 0;
+    transition: color 0.15s;
+}
+
+.footer-col a:hover {
+    color: #E7A62F;
+}
+
+.footer-bottom {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+    max-width: 1200px;
+    margin: 36px auto 0;
+    padding-top: 18px;
+    border-top: 1px solid #3A3F31;
+    font-size: 0.8em;
+    color: #8B8674;
+}
+
+@media (max-width: 640px) {
+    .footer-top {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .footer-brand {
+        grid-column: 1 / -1;
+    }
+
+    .footer-bottom {
+        flex-direction: column;
+    }
+}

@@ -55,6 +55,7 @@ while ($row = $result->fetch_assoc()) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    requireCsrf();
 
     $name        = trim($_POST['name']);
     $description = trim($_POST['description']);
@@ -263,6 +264,7 @@ $productData = $product ?: [
         <?php if ($error): ?><div class="msg-error"><?php echo htmlspecialchars($error); ?></div><?php endif; ?>
 
         <form method="POST" enctype="multipart/form-data">
+            <?php csrfField(); ?>
 
             <label>Product Name</label>
             <input type="text" name="name" value="<?php echo htmlspecialchars($productData['name']); ?>" required>

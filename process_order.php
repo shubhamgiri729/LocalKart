@@ -15,6 +15,8 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST' || empty($_SESSION['cart']) || !is_arr
     exit();
 }
 
+requireCsrf();
+
 $full_name       = trim($_POST['full_name'] ?? '');
 $email           = filter_var($_POST['email'] ?? '', FILTER_VALIDATE_EMAIL);
 $address         = trim($_POST['address'] ?? '');

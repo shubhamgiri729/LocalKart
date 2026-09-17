@@ -4,22 +4,31 @@ require_once 'config.php';
 $message = '';
 $messageType = 'error';
 $user = null;
+$token = null;
 
 if (!isset($_GET['token']) || empty($_GET['token'])) {
     $message = "❌ Invalid or missing reset token.";
 } else {
     $token = trim($_GET['token']);
 
-    $stmt = $pdo->prepare("SELECT id FROM users WHERE reset_token = ?");
+    $stmt = $pdo->prepare("SELECT id, reset_token_expires FROM users WHERE reset_token = ?");
     $stmt->execute([$token]);
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if (!$user) {
         $message = "❌ Invalid or expired reset token.";
+    } elseif (empty($user['reset_token_expires']) || strtotime($user['reset_token_expires']) < time()) {
+        // Token exists but has expired (or predates the expiry column) — clear it so it can't be reused.
+        $clear = $pdo->prepare("UPDATE users SET reset_token = NULL, reset_token_expires = NULL WHERE id = ?");
+        $clear->execute([$user['id']]);
+        $user = null;
+        $message = "❌ This reset link has expired. Please request a new one.";
     }
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $user) {
+    requireCsrf();
+
     $password = $_POST['password'] ?? '';
     $confirm  = $_POST['confirm_password'] ?? '';
 
@@ -34,7 +43,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $user) {
 
         $stmt = $pdo->prepare(
             "UPDATE users 
-             SET password = ?, reset_token = NULL 
+             SET password = ?, reset_token = NULL, reset_token_expires = NULL 
              WHERE reset_token = ?"
         );
         $stmt->execute([$hashedPassword, $token]);
@@ -160,6 +169,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $user) {
 
         <?php if ($user): ?>
             <form method="POST" onsubmit="return validateForm()">
+                <?php csrfField(); ?>
                 <label>New Password</label>
                 <input type="password" name="password" required>
 

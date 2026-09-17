@@ -12,6 +12,8 @@ $formData = [
 ];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    requireCsrf();
+
     $formData['name'] = trim($_POST['name'] ?? '');
     $formData['email'] = trim($_POST['email'] ?? '');
     $formData['subject'] = trim($_POST['subject'] ?? 'General inquiry');
@@ -250,6 +252,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <?php endif; ?>
 
                 <form action="contact.php" method="POST">
+                    <?php csrfField(); ?>
                     <div class="form-group">
                         <label for="name">Your Name</label>
                         <input type="text" id="name" name="name" required 

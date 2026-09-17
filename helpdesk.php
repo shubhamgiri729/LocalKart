@@ -13,6 +13,8 @@ $error = '';
 $vendors = $pdo->query("SELECT id, store_name FROM vendors ORDER BY store_name")->fetchAll(PDO::FETCH_ASSOC);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    requireCsrf();
+
     $vendorId = (int) ($_POST['vendor_id'] ?? 0);
     $subject  = trim($_POST['subject'] ?? '');
     $message  = trim($_POST['message'] ?? '');
@@ -142,6 +144,7 @@ try {
     <div class="section">
         <h3>Create Support Ticket</h3>
         <form method="POST">
+            <?php csrfField(); ?>
             <label>Which shop is this about?</label>
             <select name="vendor_id" required>
                 <option value="">Select a shop…</option>

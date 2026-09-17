@@ -232,6 +232,7 @@ try {
             <div class="total">Order Total: ₹<?php echo number_format($total, 2); ?></div>
 
             <form method="POST" action="process_order.php" style="margin-top: 30px;">
+                <?php csrfField(); ?>
                 <h3>📦 Billing & Shipping Information</h3>
                 <div class="form-group">
                     <div>

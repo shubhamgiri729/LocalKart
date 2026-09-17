@@ -9,6 +9,8 @@ $error = '';
 $username = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    requireCsrf();
+
     $username = trim($_POST['username'] ?? '');
     $password = $_POST['password'] ?? '';
 
@@ -194,6 +196,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <?php endif; ?>
 
             <form method="POST">
+                <?php csrfField(); ?>
                 <label for="username">Username</label>
                 <input type="text" id="username" name="username"
                     value="<?= htmlspecialchars($username) ?>" required placeholder="Enter your username">

@@ -113,3 +113,49 @@ if (isset($_GET['logout'])) {
     header("Location: index.php");
     exit();
 }
+
+/**
+ * Return the CSRF token for this session, generating one on first use.
+ * Call this wherever a form is rendered and echo it into a hidden field
+ * named "csrf_token".
+ *
+ * @return string
+ */
+function csrfToken(): string
+{
+    if (empty($_SESSION['csrf_token'])) {
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+    }
+
+    return $_SESSION['csrf_token'];
+}
+
+/**
+ * Echo a ready-to-use hidden <input> carrying the CSRF token. Drop this
+ * right after the opening <form> tag of every form that submits via POST.
+ *
+ * @return void
+ */
+function csrfField(): void
+{
+    echo '<input type="hidden" name="csrf_token" value="' . htmlspecialchars(csrfToken()) . '">';
+}
+
+/**
+ * Halt the request with a 403 if the submitted csrf_token doesn't match
+ * the one stored in the session. Call this as the first line of every
+ * POST handler, before any other $_POST access.
+ *
+ * hash_equals() is used instead of === for a timing-safe comparison.
+ *
+ * @return void
+ */
+function requireCsrf(): void
+{
+    $submitted = $_POST['csrf_token'] ?? '';
+
+    if (empty($_SESSION['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $submitted)) {
+        http_response_code(403);
+        die('Your session expired or this request could not be verified. Please go back, refresh the page, and try again.');
+    }
+}

@@ -34,6 +34,8 @@ if (isset($_GET['action'], $_GET['id'])) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_cart'])) {
+    requireCsrf();
+
     foreach ($_POST['quantity'] as $id => $qty) {
         $id = (int)$id;
         $qty = max(0, (int)$qty);
@@ -309,6 +311,7 @@ if (!empty($_SESSION['cart'])) {
     <?php else: ?>
 
         <form method="POST">
+            <?php csrfField(); ?>
             <input type="hidden" name="update_cart" value="1">
 
             <div style="overflow-x: auto;">

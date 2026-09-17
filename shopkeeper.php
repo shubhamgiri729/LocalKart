@@ -23,6 +23,8 @@ if (!$vendor) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['mark_delivered'], $_POST['order_id'])) {
+    requireCsrf();
+
     $orderId = (int)$_POST['order_id'];
 
     try {
@@ -439,6 +441,7 @@ $sales = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                         <td onclick="event.stopPropagation()">
                                             <?php if ($status === 'pending'): ?>
                                                 <form method="POST" style="margin: 0;">
+                                                    <?php csrfField(); ?>
                                                     <input type="hidden" name="order_id" value="<?= $id ?>">
                                                     <button class="btn btn-sm btn-success" name="mark_delivered">Mark Delivered</button>
                                                 </form>

@@ -4,6 +4,8 @@ require_once 'config.php';
 $message = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    requireCsrf();
+
     $email = trim($_POST['email']);
 
     if (!empty($email)) {
@@ -14,14 +16,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             if ($user) {
                 $token = bin2hex(random_bytes(32));
+                $expires = date('Y-m-d H:i:s', time() + 30 * 60); // token valid for 30 minutes
 
-                $stmt = $pdo->prepare("UPDATE users SET reset_token = ? WHERE email = ?");
-                $stmt->execute([$token, $email]);
+                $stmt = $pdo->prepare("UPDATE users SET reset_token = ?, reset_token_expires = ? WHERE email = ?");
+                $stmt->execute([$token, $expires, $email]);
                 $resetLink = "http://localhost/reset_password.php?token=" . $token;
 
                 $message = "
                     <div class='msg msg-success'>
-                        Password reset link has been generated successfully.<br><br>
+                        Password reset link has been generated successfully. It expires in 30 minutes.<br><br>
                         <strong>Reset Link (for localhost):</strong><br>
                         <a href='$resetLink'>$resetLink</a>
                     </div>
@@ -198,6 +201,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <h2>Forgot Password</h2>
 
             <form method="POST">
+                <?php csrfField(); ?>
                 <label>Email Address</label>
                 <input type="email" name="email" required placeholder="Enter your registered email">
 

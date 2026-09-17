@@ -12,6 +12,10 @@ if (isset($_GET['msg'])) {
     $message = '<div class="msg msg-success">' . htmlspecialchars($_GET['msg']) . '</div>';
 }
 
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    requireCsrf();
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'toggle_vendor_verification') {
     $vendorId = (int) $_POST['vendor_id'];
     $currentStatus = (int) $_POST['current_status'];
@@ -323,6 +327,7 @@ $categories = $pdo->query("SELECT * FROM categories ORDER BY name")->fetchAll(PD
                             <td><?= $v['verified'] ? 'Yes' : 'No' ?></td>
                             <td>
                                 <form method="post" style="margin:0;">
+                                    <?php csrfField(); ?>
                                     <input type="hidden" name="action" value="toggle_vendor_verification">
                                     <input type="hidden" name="vendor_id" value="<?= $v['id'] ?>">
                                     <input type="hidden" name="current_status" value="<?= $v['verified'] ?>">
@@ -369,6 +374,7 @@ $categories = $pdo->query("SELECT * FROM categories ORDER BY name")->fetchAll(PD
             <h2>Product Categories</h2>
 
             <form method="post" class="category-form">
+                <?php csrfField(); ?>
                 <input type="hidden" name="action" value="add_category">
                 <input type="text" name="cat_name" placeholder="Enter category name" required>
                 <button type="submit" class="btn btn-sm">Add Category</button>

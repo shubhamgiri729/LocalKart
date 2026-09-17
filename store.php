@@ -17,6 +17,8 @@ if (!$store) {
 }
 
 if ($isCustomer && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['rating'])) {
+    requireCsrf();
+
     $rating = (int) $_POST['rating'];
 
     if ($rating >= 1 && $rating <= 5) {
@@ -184,6 +186,7 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
     <div class="rate-card">
       <p><?= $myRating ? 'Update your rating' : 'Rate this store' ?></p>
       <form method="POST" style="display:flex; align-items:center; gap:14px;">
+        <?php csrfField(); ?>
         <div class="star-input">
           <?php for ($i = 5; $i >= 1; $i--): ?>
             <input type="radio" id="star<?= $i ?>" name="rating" value="<?= $i ?>" <?= $myRating === $i ? 'checked' : '' ?>>

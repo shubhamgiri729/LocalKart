@@ -20,6 +20,8 @@ $vendorId = $vendor['id'];
 $message = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ticket_id'])) {
+    requireCsrf();
+
     $ticketId = (int) $_POST['ticket_id'];
     $response = trim($_POST['response'] ?? '');
     $status   = $_POST['status'] === 'closed' ? 'closed' : 'answered';
@@ -168,6 +170,7 @@ $tickets = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
                     <?php if ($ticket['status'] !== 'closed'): ?>
                         <form method="POST" class="reply-form">
+                            <?php csrfField(); ?>
                             <input type="hidden" name="ticket_id" value="<?= $ticket['id'] ?>">
                             <textarea name="response" placeholder="Write your reply..." required><?= htmlspecialchars($ticket['response'] ?? '') ?></textarea>
                             <select name="status">

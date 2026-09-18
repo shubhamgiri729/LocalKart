@@ -46,8 +46,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['mark_delivered'], $_P
     }
 }
 
-if (isset($_GET['action'], $_GET['id']) && $_GET['action'] === 'delete') {
-    $productId = (int)$_GET['id'];
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_product'], $_POST['product_id'])) {
+    requireCsrf();
+
+    $productId = (int) $_POST['product_id'];
 
     // Remove product image
     $stmt = $pdo->prepare("SELECT image FROM products WHERE id = ? AND vendor_id = ?");
@@ -61,7 +63,9 @@ if (isset($_GET['action'], $_GET['id']) && $_GET['action'] === 'delete') {
         }
     }
 
-    // Delete product record
+    // Delete product record — vendor_id in the WHERE clause is what stops a
+    // shopkeeper from deleting a product that isn't theirs, even if they
+    // guess or tamper with another store's product_id.
     $stmt = $pdo->prepare("DELETE FROM products WHERE id = ? AND vendor_id = ?");
     $stmt->execute([$productId, $vendor['id']]);
 
@@ -387,9 +391,12 @@ $sales = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                         <td>₹<?= number_format($p['price'], 2) ?></td>
                                         <td><?= $p['stock'] ?></td>
                                         <td>
-                                            <a class="btn btn-sm btn-danger"
-                                               href="?action=delete&id=<?= $p['id'] ?>"
-                                               onclick="return confirm('Delete this product?')">Delete</a>
+                                            <form method="POST" style="margin:0;"
+                                                  onsubmit="return confirm('Delete this product?')">
+                                                <?php csrfField(); ?>
+                                                <input type="hidden" name="product_id" value="<?= $p['id'] ?>">
+                                                <button type="submit" name="delete_product" value="1" class="btn btn-sm btn-danger">Delete</button>
+                                            </form>
                                         </td>
                                     </tr>
                                 <?php endforeach; ?>

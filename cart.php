@@ -8,11 +8,6 @@ if (!isLoggedIn() || getUserRole() !== 'customer') {
 
 $userId = $_SESSION['user_id'];
 
-$conn = new mysqli(DB_HOST, DB_USER, DB_PASS, DB_NAME);
-if ($conn->connect_error) {
-    die("Database connection failed: " . $conn->connect_error);
-}
-
 if (!isset($_SESSION['cart'])) {
     $_SESSION['cart'] = [];
 }
@@ -55,7 +50,6 @@ $total = 0;
 if (!empty($_SESSION['cart'])) {
     $cartIds = array_map('intval', array_keys($_SESSION['cart']));
     $placeholders = implode(',', array_fill(0, count($cartIds), '?'));
-    $types = str_repeat('i', count($cartIds));
 
     $sql = "
         SELECT p.*, v.store_name
@@ -64,12 +58,10 @@ if (!empty($_SESSION['cart'])) {
         WHERE p.id IN ($placeholders)
     ";
 
-    $stmt = $conn->prepare($sql);
-    $stmt->bind_param($types, ...$cartIds);
-    $stmt->execute();
-    $result = $stmt->get_result();
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute($cartIds);
 
-    while ($row = $result->fetch_assoc()) {
+    while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
         $qty = $_SESSION['cart'][$row['id']];
         if ($qty > $row['stock']) $qty = $row['stock'];
 
@@ -380,5 +372,4 @@ if (!empty($_SESSION['cart'])) {
 
 </body>
 </html>
-
-<?php $conn->close(); ?>
+

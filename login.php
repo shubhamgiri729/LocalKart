@@ -22,6 +22,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if ($user && password_verify($password, $user['password'])) {
+            // Regenerate the session ID now that the user is authenticated,
+            // so a session ID issued before login (which an attacker could
+            // have planted, e.g. via a shared link) can't be reused to hijack
+            // this now-authenticated session. true = destroy the old session.
+            session_regenerate_id(true);
+
             $_SESSION['user_id']  = $user['id'];
             $_SESSION['username'] = $user['username'];
             $_SESSION['role']     = $user['role'];

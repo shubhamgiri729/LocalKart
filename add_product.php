@@ -8,17 +8,9 @@ if (!isLoggedIn() || getUserRole() !== 'shopkeeper') {
 
 $userId = $_SESSION['user_id'];
 
-$conn = new mysqli(DB_HOST, DB_USER, DB_PASS, DB_NAME);
-if ($conn->connect_error) {
-    die("Database connection failed: " . $conn->connect_error);
-}
-
-$stmt = $conn->prepare("SELECT id FROM vendors WHERE user_id = ?");
-$stmt->bind_param("i", $userId);
-$stmt->execute();
-$result = $stmt->get_result();
-$vendor = $result->fetch_assoc();
-$stmt->close();
+$stmt = $pdo->prepare("SELECT id FROM vendors WHERE user_id = ?");
+$stmt->execute([$userId]);
+$vendor = $stmt->fetch(PDO::FETCH_ASSOC);
 
 if (!$vendor) {
     die("Vendor profile not found. Please contact admin.");
@@ -34,11 +26,9 @@ $error = $success = '';
 if (isset($_GET['action'], $_GET['id']) && $_GET['action'] === 'edit') {
     $productId = (int)$_GET['id'];
 
-    $stmt = $conn->prepare("SELECT * FROM products WHERE id = ? AND vendor_id = ?");
-    $stmt->bind_param("ii", $productId, $vendorId);
-    $stmt->execute();
-    $product = $stmt->get_result()->fetch_assoc();
-    $stmt->close();
+    $stmt = $pdo->prepare("SELECT * FROM products WHERE id = ? AND vendor_id = ?");
+    $stmt->execute([$productId, $vendorId]);
+    $product = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if (!$product) {
         header("Location: shopkeeper.php?msg=Product not found.");
@@ -48,11 +38,7 @@ if (isset($_GET['action'], $_GET['id']) && $_GET['action'] === 'edit') {
     $action = 'edit';
 }
 
-$categories = [];
-$result = $conn->query("SELECT * FROM categories ORDER BY name");
-while ($row = $result->fetch_assoc()) {
-    $categories[] = $row;
-}
+$categories = $pdo->query("SELECT * FROM categories ORDER BY name")->fetchAll(PDO::FETCH_ASSOC);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     requireCsrf();
@@ -69,25 +55,57 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $uploadDir = "uploads/products/";
         if (!is_dir($uploadDir)) {
-            mkdir($uploadDir, 0777, true);
+            mkdir($uploadDir, 0755, true);
         }
 
-        $fileName = time() . "_" . basename($_FILES['image']['name']);
-        $target   = $uploadDir . $fileName;
-        $ext      = strtolower(pathinfo($target, PATHINFO_EXTENSION));
-        $allowed  = ['jpg', 'jpeg', 'png', 'gif'];
+        $file = $_FILES['image'];
+        $allowedExt = ['jpg', 'jpeg', 'png', 'gif'];
+        // Only the MIME types we actually want to serve as images — this is
+        // checked against the file's real content below, not the filename.
+        $allowedMime = [
+            'image/jpeg' => ['jpg', 'jpeg'],
+            'image/png'  => ['png'],
+            'image/gif'  => ['gif'],
+        ];
 
-        if (!in_array($ext, $allowed)) {
-            $error = "Only JPG, JPEG, PNG, or GIF allowed.";
-        } elseif ($_FILES['image']['size'] > 2 * 1024 * 1024) {
+        if ($file['error'] !== UPLOAD_ERR_OK) {
+            $error = "Image upload failed. Please try again.";
+        } elseif ($file['size'] > 2 * 1024 * 1024) {
             $error = "Image size must be less than 2MB.";
-        } elseif (!move_uploaded_file($_FILES['image']['tmp_name'], $target)) {
-            $error = "Image upload failed.";
+        } elseif (!in_array(strtolower(pathinfo($file['name'], PATHINFO_EXTENSION)), $allowedExt, true)) {
+            $error = "Only JPG, JPEG, PNG, or GIF allowed.";
         } else {
-            if ($action === 'edit' && !empty($product['image']) && file_exists($uploadDir . $product['image'])) {
-                unlink($uploadDir . $product['image']);
+            // The filename extension is only a hint — check what the file
+            // actually IS. finfo reads the real content, not the client-
+            // supplied $_FILES['image']['type'] (which is trivially spoofable),
+            // and getimagesize() further confirms it decodes as a real image
+            // rather than, say, a PHP shell renamed to photo.jpg.
+            $finfo = finfo_open(FILEINFO_MIME_TYPE);
+            $realMime = finfo_file($finfo, $file['tmp_name']);
+            finfo_close($finfo);
+
+            $imageInfo = @getimagesize($file['tmp_name']);
+
+            if (!isset($allowedMime[$realMime]) || $imageInfo === false) {
+                $error = "That file doesn't look like a valid image.";
+            } else {
+                // Fully random filename — the original filename (which could
+                // contain path characters, unicode, or a disguised double
+                // extension like photo.jpg.php) is never used to build the
+                // path on disk.
+                $ext = $allowedMime[$realMime][0];
+                $fileName = bin2hex(random_bytes(16)) . '.' . $ext;
+                $target = $uploadDir . $fileName;
+
+                if (!move_uploaded_file($file['tmp_name'], $target)) {
+                    $error = "Image upload failed.";
+                } else {
+                    if ($action === 'edit' && !empty($product['image']) && file_exists($uploadDir . $product['image'])) {
+                        unlink($uploadDir . $product['image']);
+                    }
+                    $imageName = $fileName;
+                }
             }
-            $imageName = $fileName;
         }
     }
 
@@ -97,44 +115,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (!$error) {
         if ($action === 'add') {
-            $stmt = $conn->prepare("
+            $stmt = $pdo->prepare("
                 INSERT INTO products 
                 (vendor_id, category_id, name, description, image, price, stock)
                 VALUES (?, ?, ?, ?, ?, ?, ?)
             ");
-            $stmt->bind_param(
-                "iisssdi",
-                $vendorId,
-                $categoryId,
-                $name,
-                $description,
-                $imageName,
-                $price,
-                $stock
-            );
-            $stmt->execute();
-            $stmt->close();
+            $stmt->execute([$vendorId, $categoryId, $name, $description, $imageName, $price, $stock]);
 
             $success = "Product added successfully!";
         } else {
-            $stmt = $conn->prepare("
+            // vendor_id in the WHERE clause is what stops a shopkeeper from
+            // editing a product that isn't theirs, even if they tamper with
+            // the product_id in the form.
+            $stmt = $pdo->prepare("
                 UPDATE products 
                 SET category_id=?, name=?, description=?, image=?, price=?, stock=?
                 WHERE id=? AND vendor_id=?
             ");
-            $stmt->bind_param(
-                "isssdiii",
-                $categoryId,
-                $name,
-                $description,
-                $imageName,
-                $price,
-                $stock,
-                $productId,
-                $vendorId
-            );
-            $stmt->execute();
-            $stmt->close();
+            $stmt->execute([$categoryId, $name, $description, $imageName, $price, $stock, $productId, $vendorId]);
 
             $success = "Product updated successfully!";
         }
@@ -302,5 +300,4 @@ $productData = $product ?: [
 </body>
 
 </html>
-
-<?php $conn->close(); ?>
+

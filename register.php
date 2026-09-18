@@ -19,47 +19,62 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($role !== 'customer' && $role !== 'shopkeeper') {
         $error = 'Invalid role selected.';
     } else {
-        try {
-            $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
+        // Validate shopkeeper-only fields up front, before touching the
+        // database at all — previously this check ran after the user row
+        // was already inserted, so a shopkeeper who left these blank got a
+        // user account with no vendor row to go with it.
+        $storeName = trim($_POST['store_name'] ?? '');
+        $address   = trim($_POST['address'] ?? '');
 
-            $stmt = $pdo->prepare(
-                "SELECT id FROM users WHERE username = ? OR email = ?"
-            );
-            $stmt->execute([$username, $email]);
+        if ($role === 'shopkeeper' && (empty($storeName) || empty($address))) {
+            $error = 'Store name and address are required for shopkeepers.';
+        } else {
+            try {
+                $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
 
-            if ($stmt->fetch()) {
-                $error = 'Username or email already exists.';
-            } else {
                 $stmt = $pdo->prepare(
-                    "INSERT INTO users (username, email, password, role)
-                     VALUES (?, ?, ?, ?)"
+                    "SELECT id FROM users WHERE username = ? OR email = ?"
                 );
-                $stmt->execute([$username, $email, $hashedPassword, $role]);
+                $stmt->execute([$username, $email]);
 
-                $userId = $pdo->lastInsertId();
+                if ($stmt->fetch()) {
+                    $error = 'Username or email already exists.';
+                } else {
+                    // Creating the user and (for shopkeepers) the matching
+                    // vendor row is one logical operation — either both
+                    // succeed or neither does, so a mid-way failure can't
+                    // leave a user account with no vendor profile attached.
+                    $pdo->beginTransaction();
 
-                if ($role === 'shopkeeper') {
-                    $storeName = trim($_POST['store_name'] ?? '');
-                    $address   = trim($_POST['address'] ?? '');
-
-                    if (empty($storeName) || empty($address)) {
-                        throw new Exception(
-                            'Store name and address are required for shopkeepers.'
+                    try {
+                        $stmt = $pdo->prepare(
+                            "INSERT INTO users (username, email, password, role)
+                             VALUES (?, ?, ?, ?)"
                         );
+                        $stmt->execute([$username, $email, $hashedPassword, $role]);
+
+                        $userId = $pdo->lastInsertId();
+
+                        if ($role === 'shopkeeper') {
+                            $stmt = $pdo->prepare(
+                                "INSERT INTO vendors (user_id, store_name, address)
+                                 VALUES (?, ?, ?)"
+                            );
+                            $stmt->execute([$userId, $storeName, $address]);
+                        }
+
+                        $pdo->commit();
+                    } catch (Exception $e) {
+                        $pdo->rollBack();
+                        throw $e;
                     }
 
-                    $stmt = $pdo->prepare(
-                        "INSERT INTO vendors (user_id, store_name, address)
-                         VALUES (?, ?, ?)"
-                    );
-                    $stmt->execute([$userId, $storeName, $address]);
+                    $success = 'Registration successful! Redirecting to login...';
+                    header("refresh:2; url=login.php");
                 }
-
-                $success = 'Registration successful! Redirecting to login...';
-                header("refresh:2; url=login.php");
+            } catch (Exception $e) {
+                $error = 'Registration failed. Please try again.';
             }
-        } catch (Exception $e) {
-            $error = $e->getMessage();
         }
     }
 }

@@ -1,0 +1,27 @@
+# Even though add_product.php only accepts real, verified image files, this
+# is a second layer of defense: nothing in this directory (or its
+# subdirectories) is ever executed as PHP, no matter what ends up here.
+
+# Apache 2.4+
+<IfModule mod_authz_core.c>
+    <FilesMatch "\.(php|php\d|phtml|phar|pht)$">
+        Require all denied
+    </FilesMatch>
+</IfModule>
+
+# Apache 2.2 and earlier
+<IfModule !mod_authz_core.c>
+    <FilesMatch "\.(php|php\d|phtml|phar|pht)$">
+        Order Allow,Deny
+        Deny from all
+    </FilesMatch>
+</IfModule>
+
+# Belt and suspenders: disable the PHP engine entirely for this directory
+# on hosts where PHP runs as an Apache module.
+<IfModule mod_php.c>
+    php_flag engine off
+</IfModule>
+<IfModule mod_php7.c>
+    php_flag engine off
+</IfModule>

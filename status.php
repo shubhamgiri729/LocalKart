@@ -23,8 +23,10 @@ if (!$vendor) {
     die("Vendor profile not found.");
 }
 
-if (isset($_GET['action'], $_GET['order_id']) && $_GET['action'] === 'dispatch') {
-    $orderId = (int)$_GET['order_id'];
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['dispatch_order'], $_POST['order_id'])) {
+    requireCsrf();
+
+    $orderId = (int) $_POST['order_id'];
 
     try {
         $stmt = $pdo->prepare("
@@ -122,11 +124,14 @@ $sales = $stmt->fetchAll(PDO::FETCH_ASSOC);
                             <td><?= $sale['created_at']; ?></td>
                             <td>
                                 <?php if ($sale['status'] === 'pending'): ?>
-                                    <a href="?action=dispatch&order_id=<?= $sale['order_id']; ?>"
-                                        class="btn btn-success"
-                                        onclick="return confirm('Mark as dispatched?');">
-                                        Dispatch
-                                    </a>
+                                    <form method="POST" style="margin:0;"
+                                          onsubmit="return confirm('Mark as dispatched?');">
+                                        <?php csrfField(); ?>
+                                        <input type="hidden" name="order_id" value="<?= $sale['order_id']; ?>">
+                                        <button type="submit" name="dispatch_order" value="1" class="btn btn-success">
+                                            Dispatch
+                                        </button>
+                                    </form>
                                 <?php else: ?>
                                     —
                                 <?php endif; ?>

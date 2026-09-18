@@ -1,5 +1,26 @@
 <?php
 
+// Session cookie hardening — set before session_start() so it actually
+// applies to the cookie PHP issues.
+// - HttpOnly: JavaScript can't read the session cookie (mitigates XSS
+//   stealing the session).
+// - SameSite=Lax: the cookie isn't sent on cross-site requests initiated
+//   by other sites, which blocks most CSRF vectors as a second layer on
+//   top of the csrf_token checks already in this app.
+// - Secure: only sent over HTTPS. Detected automatically so this still
+//   works locally over plain HTTP in XAMPP, and switches on by itself
+//   once deployed behind HTTPS — nothing to toggle manually at deploy time.
+$isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+    || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
+
+session_set_cookie_params([
+    'lifetime' => 0,
+    'path'     => '/',
+    'httponly' => true,
+    'samesite' => 'Lax',
+    'secure'   => $isHttps,
+]);
+
 session_start();
 
 /**
@@ -51,6 +72,20 @@ try {
 // The API key must come from the environment and must never be hardcoded.
 define('GEMINI_API_KEY', getenv('GEMINI_API_KEY') ?: '');
 define('GEMINI_MODEL', getenv('GEMINI_MODEL') ?: 'gemini-3.6-flash');
+
+// Base URL of the site, used to build absolute links (e.g. the password
+// reset link sent by email). Set APP_URL in .env once you have a real
+// domain — falls back to localhost for local development.
+define('APP_URL', getenv('APP_URL') ?: 'http://localhost/LocalKart');
+
+// SMTP configuration for outgoing email (password reset, etc.). See
+// .env.example for where to get these from a provider like Gmail or Brevo.
+define('SMTP_HOST', getenv('SMTP_HOST') ?: '');
+define('SMTP_PORT', getenv('SMTP_PORT') ?: 587);
+define('SMTP_USERNAME', getenv('SMTP_USERNAME') ?: '');
+define('SMTP_PASSWORD', getenv('SMTP_PASSWORD') ?: '');
+define('SMTP_FROM_EMAIL', getenv('SMTP_FROM_EMAIL') ?: 'no-reply@localkart.test');
+define('SMTP_FROM_NAME', getenv('SMTP_FROM_NAME') ?: 'LocalKart');
 
 /**
 

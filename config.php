@@ -87,6 +87,13 @@ define('SMTP_PASSWORD', getenv('SMTP_PASSWORD') ?: '');
 define('SMTP_FROM_EMAIL', getenv('SMTP_FROM_EMAIL') ?: 'no-reply@localkart.test');
 define('SMTP_FROM_NAME', getenv('SMTP_FROM_NAME') ?: 'LocalKart');
 
+// Razorpay. RAZORPAY_KEY_ID is safe to expose to the browser (checkout.php
+// prints it into the page for Checkout.js) — RAZORPAY_KEY_SECRET must never
+// leave the server; it's only used server-side in razorpay_create_order.php
+// and process_order.php to call the Razorpay API and verify payments.
+define('RAZORPAY_KEY_ID', getenv('RAZORPAY_KEY_ID') ?: '');
+define('RAZORPAY_KEY_SECRET', getenv('RAZORPAY_KEY_SECRET') ?: '');
+
 /**
 
  * @return bool
@@ -174,6 +181,73 @@ function csrfToken(): string
 function csrfField(): void
 {
     echo '<input type="hidden" name="csrf_token" value="' . htmlspecialchars(csrfToken()) . '">';
+}
+
+/**
+ * Create a Razorpay order via their REST API. This must happen server-side
+ * (it needs the secret key) before the Checkout.js widget opens — Razorpay
+ * requires a valid order_id up front, it doesn't accept an arbitrary amount
+ * typed into the frontend.
+ *
+ * @param int $amountInPaise Amount in paise (₹1 = 100 paise). Always compute
+ *                           this from the server-side cart total, never from
+ *                           anything the client sent — otherwise a tampered
+ *                           request could create an order for any amount.
+ * @param string $receipt A short reference string, e.g. "order_rcpt_7".
+ * @return array|false Decoded Razorpay order on success, false on failure.
+ */
+function razorpayCreateOrder(int $amountInPaise, string $receipt): array|false
+{
+    if (!RAZORPAY_KEY_ID || !RAZORPAY_KEY_SECRET) {
+        error_log('Razorpay keys are not configured in .env');
+        return false;
+    }
+
+    $ch = curl_init('https://api.razorpay.com/v1/orders');
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_POST => true,
+        CURLOPT_USERPWD => RAZORPAY_KEY_ID . ':' . RAZORPAY_KEY_SECRET,
+        CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
+        CURLOPT_POSTFIELDS => json_encode([
+            'amount' => $amountInPaise,
+            'currency' => 'INR',
+            'receipt' => $receipt,
+            'payment_capture' => 1,
+        ]),
+        CURLOPT_TIMEOUT => 15,
+    ]);
+
+    $response = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $curlError = curl_error($ch);
+    curl_close($ch);
+
+    if ($response === false || $httpCode !== 200) {
+        error_log("Razorpay order creation failed: HTTP $httpCode $curlError $response");
+        return false;
+    }
+
+    $data = json_decode($response, true);
+    return is_array($data) ? $data : false;
+}
+
+/**
+ * Verify a completed Razorpay payment actually belongs to this order and
+ * wasn't forged. Razorpay signs order_id + "|" + payment_id with your key
+ * secret (HMAC-SHA256); recomputing that signature server-side and comparing
+ * it is the only way to trust a payment_id the browser sends back — the
+ * browser's word alone is not enough, anyone could POST a fake payment_id.
+ */
+function razorpayVerifySignature(string $orderId, string $paymentId, string $signature): bool
+{
+    if (!RAZORPAY_KEY_SECRET) {
+        return false;
+    }
+
+    $expected = hash_hmac('sha256', $orderId . '|' . $paymentId, RAZORPAY_KEY_SECRET);
+
+    return hash_equals($expected, $signature);
 }
 
 /**

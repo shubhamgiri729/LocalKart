@@ -33,11 +33,35 @@ if (
     exit();
 }
 
-$payment_success = true;
-if (!$payment_success) {
-    header("Location: checkout.php?error=" . urlencode("Payment failed."));
+$razorpay_order_id = null;
+$razorpay_payment_id = null;
+
+if ($payment_method === 'razorpay') {
+    $razorpay_order_id   = trim($_POST['razorpay_order_id'] ?? '');
+    $razorpay_payment_id = trim($_POST['razorpay_payment_id'] ?? '');
+    $razorpay_signature  = trim($_POST['razorpay_signature'] ?? '');
+    $pending             = $_SESSION['razorpay_pending'] ?? null;
+
+    $signatureValid = $razorpay_order_id && $razorpay_payment_id && $razorpay_signature
+        && razorpayVerifySignature($razorpay_order_id, $razorpay_payment_id, $razorpay_signature);
+
+    // The order_id Razorpay signed must also match the one *this server*
+    // created in razorpay_create_order.php for this cart — otherwise a
+    // genuinely valid signature from a completely different (e.g. much
+    // cheaper) payment could be replayed against this order.
+    $orderMatchesPending = $pending && $pending['order_id'] === $razorpay_order_id;
+
+    if (!$signatureValid || !$orderMatchesPending) {
+        header("Location: checkout.php?error=" . urlencode("Payment verification failed. If money was deducted, it will be refunded — please contact support."));
+        exit();
+    }
+
+    unset($_SESSION['razorpay_pending']);
+} elseif ($payment_method !== 'cod') {
+    header("Location: checkout.php?error=" . urlencode("Please choose a valid payment method."));
     exit();
 }
+// 'cod' needs no payment verification — the customer pays on delivery.
 
 $customer_id = $_SESSION['user_id'];
 $total = 0;
@@ -74,6 +98,21 @@ try {
         exit();
     }
 
+    // For Razorpay, make sure what was actually charged still matches what
+    // the cart adds up to now. These can drift apart if, say, another
+    // customer bought the last unit of something between the payment
+    // starting and finishing — rare, but this is the check that catches it
+    // rather than silently creating an order for the wrong amount.
+    if ($payment_method === 'razorpay') {
+        $chargedPaise = $pending['amount'] ?? null;
+        $expectedPaise = (int) round($total * 100);
+
+        if ($chargedPaise === null || $chargedPaise !== $expectedPaise) {
+            header("Location: checkout.php?error=" . urlencode("Your cart changed during payment. Please contact support with your payment ID for a refund: " . $razorpay_payment_id));
+            exit();
+        }
+    }
+
     if ($cart_warning) {
         $_SESSION['cart_message'] = $cart_warning;
     }
@@ -86,10 +125,10 @@ $pdo->beginTransaction();
 
 try {
     $stmt = $pdo->prepare(
-        "INSERT INTO orders (customer_id, total, status, created_at)
-         VALUES (?, ?, 'pending', NOW())"
+        "INSERT INTO orders (customer_id, total, payment_method, razorpay_order_id, razorpay_payment_id, status, created_at)
+         VALUES (?, ?, ?, ?, ?, 'pending', NOW())"
     );
-    $stmt->execute([$customer_id, $total]);
+    $stmt->execute([$customer_id, $total, $payment_method, $razorpay_order_id, $razorpay_payment_id]);
     $order_id = $pdo->lastInsertId();
 
     $item_stmt = $pdo->prepare(

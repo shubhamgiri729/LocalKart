@@ -13,7 +13,7 @@ if (empty($_SESSION['cart']) || !is_array($_SESSION['cart'])) {
 
 $cartItems = [];
 $total = 0;
-$error = '';
+$error = $_GET['error'] ?? '';
 try {
     foreach ($_SESSION['cart'] as $productId => $quantity) {
         if ($quantity > 0) {
@@ -231,7 +231,7 @@ try {
             </div>
             <div class="total">Order Total: ₹<?php echo number_format($total, 2); ?></div>
 
-            <form method="POST" action="process_order.php" style="margin-top: 30px;">
+            <form method="POST" action="process_order.php" id="checkout-form" style="margin-top: 30px;">
                 <?php csrfField(); ?>
                 <h3>📦 Billing & Shipping Information</h3>
                 <div class="form-group">
@@ -269,21 +269,123 @@ try {
                         <label for="payment_method">Payment Method *</label>
                         <select id="payment_method" name="payment_method" required>
                             <option value="">Choose a method...</option>
-                            <option value="card">Credit/Debit Card (UPI, Visa, Mastercard)</option>
-                            <option value="paypal">Online Wallet</option>
+                            <option value="razorpay">Pay Now — Card / UPI / Netbanking / Wallet</option>
                             <option value="cod">Cash on Delivery (COD)</option>
                         </select>
                     </div>
-                    <div></div> 
+                    <div></div>
                 </div>
+
+                <!-- Filled in by JS after a successful Razorpay payment, before this
+                     form actually submits to process_order.php. -->
+                <input type="hidden" id="razorpay_order_id" name="razorpay_order_id">
+                <input type="hidden" id="razorpay_payment_id" name="razorpay_payment_id">
+                <input type="hidden" id="razorpay_signature" name="razorpay_signature">
+
+                <div id="pay-error" class="msg-error" style="display:none;"></div>
                 <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 30px;">
                     <a href="cart.php" class="btn btn-secondary">Back to Cart</a>
-                    <button type="submit" class="btn btn-primary">Place Order & Pay Now</button>
+                    <button type="submit" id="pay-btn" class="btn btn-primary">Place Order & Pay Now</button>
                 </div>
             </form>
         </div>
     </div>
 
     <?php include 'partials/footer.php'; ?>
+
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    <script>
+    (function () {
+        const form = document.getElementById('checkout-form');
+        const payBtn = document.getElementById('pay-btn');
+        const errorBox = document.getElementById('pay-error');
+        let paymentVerified = false;
+
+        function showError(msg) {
+            errorBox.textContent = msg;
+            errorBox.style.display = 'block';
+        }
+
+        function setLoading(loading) {
+            payBtn.disabled = loading;
+            payBtn.textContent = loading ? 'Processing…' : 'Place Order & Pay Now';
+        }
+
+        form.addEventListener('submit', function (e) {
+            const method = document.getElementById('payment_method').value;
+
+            // Cash on delivery, or a payment we've already verified below —
+            // let the form submit to process_order.php as normal.
+            if (method === 'cod' || paymentVerified) {
+                return;
+            }
+
+            if (method !== 'razorpay') {
+                return; // let the browser's own "required" validation handle an empty choice
+            }
+
+            // Otherwise: this is the first click for a Razorpay payment.
+            // Stop the normal submit, create a Razorpay order, and only
+            // resubmit the form once that payment actually succeeds.
+            e.preventDefault();
+            errorBox.style.display = 'none';
+            setLoading(true);
+
+            const csrfToken = form.querySelector('[name="csrf_token"]').value;
+
+            fetch('razorpay_create_order.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: 'csrf_token=' + encodeURIComponent(csrfToken)
+            })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.error) {
+                        setLoading(false);
+                        showError(data.error);
+                        return;
+                    }
+
+                    const rzp = new Razorpay({
+                        key: data.key_id,
+                        amount: data.amount,
+                        currency: data.currency,
+                        order_id: data.razorpay_order_id,
+                        name: 'LocalKart',
+                        description: 'Order payment',
+                        prefill: {
+                            name: document.getElementById('full_name').value,
+                            email: document.getElementById('email').value
+                        },
+                        theme: { color: '#2F5233' },
+                        handler: function (response) {
+                            document.getElementById('razorpay_order_id').value = response.razorpay_order_id;
+                            document.getElementById('razorpay_payment_id').value = response.razorpay_payment_id;
+                            document.getElementById('razorpay_signature').value = response.razorpay_signature;
+                            paymentVerified = true;
+                            form.submit();
+                        },
+                        modal: {
+                            ondismiss: function () {
+                                setLoading(false);
+                                showError('Payment was cancelled. You have not been charged.');
+                            }
+                        }
+                    });
+
+                    rzp.on('payment.failed', function () {
+                        setLoading(false);
+                        showError('Payment failed. Please try again or choose Cash on Delivery.');
+                    });
+
+                    rzp.open();
+                })
+                .catch(() => {
+                    setLoading(false);
+                    showError('Could not start payment. Please check your connection and try again.');
+                });
+        });
+    })();
+    </script>
 </body>
 </html>

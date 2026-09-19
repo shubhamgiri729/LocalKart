@@ -10,9 +10,11 @@ if (!isset($_GET['token']) || empty($_GET['token'])) {
     $message = "❌ Invalid or missing reset token.";
 } else {
     $token = trim($_GET['token']);
+    // The database stores only a SHA-256 hash of the token (see forgot_password.php).
+    $tokenHash = hash('sha256', $token);
 
     $stmt = $pdo->prepare("SELECT id, reset_token_expires FROM users WHERE reset_token = ?");
-    $stmt->execute([$token]);
+    $stmt->execute([$tokenHash]);
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if (!$user) {
@@ -46,7 +48,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $user) {
              SET password = ?, reset_token = NULL, reset_token_expires = NULL 
              WHERE reset_token = ?"
         );
-        $stmt->execute([$hashedPassword, $token]);
+        $stmt->execute([$hashedPassword, $tokenHash]);
 
         $message = "✅ Password reset successful! <a href='login.php'>Login here</a>";
         $messageType = 'success';

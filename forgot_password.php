@@ -1,39 +1,77 @@
 <?php
 require_once 'config.php';
+require_once 'mailer.php';
 
 $message = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     requireCsrf();
 
-    $email = trim($_POST['email']);
+    $email = trim($_POST['email'] ?? '');
 
-    if (!empty($email)) {
+    if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $message = "<div class='msg msg-error'>Please enter a valid email address.</div>";
+    } else {
         try {
-            $stmt = $pdo->prepare("SELECT id FROM users WHERE email = ?");
+            $stmt = $pdo->prepare("SELECT id, username FROM users WHERE email = ?");
             $stmt->execute([$email]);
             $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
+            $mailFailed = false;
+
             if ($user) {
-                $token = bin2hex(random_bytes(32));
-                $expires = date('Y-m-d H:i:s', time() + 30 * 60); // token valid for 30 minutes
+                // The raw token only ever goes into the email. The database stores a
+                // SHA-256 hash of it (64 hex chars, fits reset_token VARCHAR(64)), so a
+                // leaked database can't be used to reset anyone's password.
+                $token     = bin2hex(random_bytes(32));
+                $tokenHash = hash('sha256', $token);
+                $expires   = date('Y-m-d H:i:s', time() + 30 * 60); // valid for 30 minutes
 
-                $stmt = $pdo->prepare("UPDATE users SET reset_token = ?, reset_token_expires = ? WHERE email = ?");
-                $stmt->execute([$token, $expires, $email]);
-                $resetLink = "http://localhost/reset_password.php?token=" . $token;
+                $stmt = $pdo->prepare("UPDATE users SET reset_token = ?, reset_token_expires = ? WHERE id = ?");
+                $stmt->execute([$tokenHash, $expires, $user['id']]);
 
-                $message = "
-                    <div class='msg msg-success'>
-                        Password reset link has been generated successfully. It expires in 30 minutes.<br><br>
-                        <strong>Reset Link (for localhost):</strong><br>
-                        <a href='$resetLink'>$resetLink</a>
+                $resetLink = rtrim(APP_URL, '/') . '/reset_password.php?token=' . $token;
+                $safeName  = htmlspecialchars($user['username'], ENT_QUOTES, 'UTF-8');
+
+                $htmlBody = "
+                    <div style='font-family:Arial,sans-serif;max-width:480px;margin:auto;color:#23291D'>
+                        <h2 style='color:#2F5233'>Reset your LocalKart password</h2>
+                        <p>Hi {$safeName},</p>
+                        <p>We received a request to reset your password. Click the button below to choose a new one.
+                           This link expires in 30 minutes.</p>
+                        <p style='margin:24px 0'>
+                            <a href='{$resetLink}'
+                               style='background:#2F5233;color:#fff;padding:12px 24px;border-radius:999px;text-decoration:none;font-weight:600'>
+                                Reset Password
+                            </a>
+                        </p>
+                        <p style='font-size:13px;color:#565C4E'>Or copy this link into your browser:<br>{$resetLink}</p>
+                        <p style='font-size:13px;color:#565C4E'>If you didn't request this, you can safely ignore this email — your password won't change.</p>
                     </div>
                 ";
+                $textBody = "Hi {$user['username']},\n\n"
+                    . "We received a request to reset your LocalKart password. Open this link to choose a new one (valid for 30 minutes):\n\n"
+                    . "{$resetLink}\n\n"
+                    . "If you didn't request this, you can ignore this email.";
+
+                if (!sendMail($email, 'Reset your LocalKart password', $htmlBody, $textBody)) {
+                    $mailFailed = true;
+                    // Don't leave a live token behind for an email that never went out.
+                    $pdo->prepare("UPDATE users SET reset_token = NULL, reset_token_expires = NULL WHERE id = ?")
+                        ->execute([$user['id']]);
+                }
+            }
+
+            if ($mailFailed) {
+                $message = "<div class='msg msg-error'>We couldn't send the email right now. Please try again in a few minutes.</div>";
             } else {
-                $message = "<div class='msg msg-error'>No account found with this email.</div>";
+                // Same wording whether or not the address is registered, so this form
+                // can't be used to find out which emails have accounts.
+                $message = "<div class='msg msg-success'>If an account exists for that email, a password reset link has been sent. Please check your inbox (and spam folder). The link expires in 30 minutes.</div>";
             }
         } catch (PDOException $e) {
-            $message = "<div class='msg msg-error'>Database error: " . htmlspecialchars($e->getMessage()) . "</div>";
+            error_log('forgot_password DB error: ' . $e->getMessage());
+            $message = "<div class='msg msg-error'>Something went wrong. Please try again.</div>";
         }
     }
 }

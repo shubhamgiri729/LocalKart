@@ -82,6 +82,9 @@ CREATE TABLE IF NOT EXISTS orders (
     id INT AUTO_INCREMENT PRIMARY KEY,
     customer_id INT NOT NULL,
     total DECIMAL(10,2) NOT NULL,
+    payment_method ENUM('razorpay', 'cod') NOT NULL DEFAULT 'cod',
+    razorpay_order_id VARCHAR(64) NULL,
+    razorpay_payment_id VARCHAR(64) NULL,
     status ENUM('pending', 'dispatched', 'delivered') DEFAULT 'pending',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (customer_id) REFERENCES users(id)

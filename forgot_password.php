@@ -228,6 +228,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             font-size: 14px;
             color: var(--ink-soft);
         }
+
+        @media (max-width: 480px) {
+            .main-content { padding: 24px 16px; }
+            .auth-container { padding: 28px 22px; }
+        }
     </style>
 </head>
 <body>

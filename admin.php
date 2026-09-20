@@ -268,6 +268,35 @@ $categories = $pdo->query("SELECT * FROM categories ORDER BY name")->fetchAll(PD
     font-size: 14px;
     margin: 8px 0;
   }
+
+  @media (max-width: 700px) {
+    .container {
+      padding: 24px 14px;
+    }
+
+    .admin-header {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+
+    section {
+      padding: 18px;
+    }
+
+    /* No scroll wrapper around these tables, so let the table itself
+       scroll horizontally rather than squashing columns. */
+    table {
+      display: block;
+      overflow-x: auto;
+      white-space: nowrap;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .category-form {
+      flex-direction: column;
+      max-width: 100%;
+    }
+  }
 </style>
 </head>
 <body>

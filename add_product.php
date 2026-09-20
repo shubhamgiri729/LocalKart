@@ -294,6 +294,11 @@ $productData = $product ?: [
             border-radius: 8px;
             border: 1px solid var(--line);
         }
+
+        @media (max-width: 480px) {
+            .main-content { padding: 24px 16px; }
+            .container { padding: 28px 22px; }
+        }
     </style>
 </head>
 

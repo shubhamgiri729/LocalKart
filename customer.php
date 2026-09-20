@@ -109,6 +109,14 @@ try {
     align-items: start;
   }
 
+  /* Grid items default to min-width: auto, so wide content (like the
+     orders table) can force a track wider than the viewport instead of
+     scrolling inside its own overflow-x wrapper. Force them to shrink
+     to their track so the wrapper's scroll actually kicks in. */
+  .dashboard-grid > div {
+    min-width: 0;
+  }
+
   .section {
     background: var(--white);
     border: 1px solid var(--line);

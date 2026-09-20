@@ -126,6 +126,13 @@ $tickets = $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
     textarea:focus { outline: none; border-color: var(--moss); box-shadow: 0 0 0 3px rgba(47, 82, 51, 0.15); }
     select { padding: 10px 12px; border-radius: 8px; border: 1px solid var(--line); font-family: inherit; font-size: 14px; background: var(--white); color: var(--ink); }
+
+    @media (max-width: 480px) {
+        .container { padding: 24px 14px 50px; }
+        .page-header { flex-direction: column; align-items: flex-start; }
+        .ticket { padding: 18px; }
+        .ticket-meta { flex-direction: column; align-items: flex-start; gap: 6px; }
+    }
 </style>
 </head>
 <body>

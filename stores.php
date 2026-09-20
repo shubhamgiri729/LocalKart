@@ -95,6 +95,11 @@ try {
             transform: translateY(-1px);  
             box-shadow: 0 4px 12px rgba(47, 82, 51, 0.25);  
         }  
+
+        @media (max-width: 480px) {
+            .container { margin: 24px auto; padding: 0 16px; }
+            h1 { font-size: 1.6rem; }
+        }
     </style>  
 </head>
 <body>  

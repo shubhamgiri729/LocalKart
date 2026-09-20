@@ -256,6 +256,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   .auth-link a:hover {
     text-decoration: underline;
   }
+
+  @media (max-width: 480px) {
+    .container { padding: 24px 16px; }
+    .register-form { padding: 28px 22px; }
+  }
 </style>
 </head>
 <body>

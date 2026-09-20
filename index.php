@@ -322,6 +322,73 @@ try {
             color: #FFFF;
             box-shadow: 0 2px 6px rgba(0, 123, 255, 0.25);
         }
+
+        @media (max-width: 900px) {
+            .intro {
+                flex-direction: column;
+                width: 100%;
+                min-height: auto;
+                gap: 24px;
+                text-align: center;
+            }
+
+            .tag-line {
+                max-width: 100%;
+            }
+
+            .tag-line h1,
+            .tag-line p {
+                text-align: center;
+            }
+
+            .tag-line span {
+                width: auto;
+            }
+
+            .hero-stats {
+                justify-content: center;
+                flex-wrap: wrap;
+                text-align: left;
+            }
+
+            /* The floating tag chips are absolutely positioned for a wide
+               desktop canvas; they overlap and overflow on narrow screens,
+               so hide the decorative board and keep the tag-line content. */
+            .tag-board {
+                display: none;
+            }
+
+            .section-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 8px;
+                margin-top: 50px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                margin: 16px auto;
+                padding: 0 16px;
+            }
+
+            .tag-line h1 {
+                font-size: 2.1rem;
+            }
+
+            .tag-line span {
+                font-size: 2.3rem;
+            }
+
+            .tag-line p {
+                font-size: 1.05rem;
+            }
+
+            .hero-stats {
+                gap: 18px;
+                font-size: 1em;
+            }
+        }
     </style>
 </head>
 
@@ -559,6 +626,18 @@ try {
 
         #chat-footer button:hover {
             background: #20391F;
+        }
+
+        @media (max-width: 480px) {
+            #chat-widget {
+                width: calc(100vw - 32px);
+                right: 16px;
+                bottom: 16px;
+            }
+
+            #chat-body {
+                height: 220px;
+            }
         }
     </style>
 

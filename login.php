@@ -196,6 +196,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     color: var(--moss);
     text-decoration: underline;
   }
+
+  @media (max-width: 480px) {
+    .container { padding: 24px 16px; }
+    .login-form { padding: 28px 22px; }
+  }
 </style>
 </head>
 <body>

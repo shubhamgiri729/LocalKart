@@ -142,6 +142,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $user) {
             background: #f8d7da;
             color: #721c24;
         }
+
+        @media (max-width: 480px) {
+            .container {
+                margin: 32px auto;
+                padding: 22px 18px;
+            }
+        }
     </style>
 
     <script>

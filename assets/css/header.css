@@ -68,14 +68,93 @@
     border-radius: 25%;
 }
 
+.nav-toggle {
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 5px;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    background: transparent;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.nav-toggle:hover {
+    background: rgba(47, 82, 51, 0.08);
+}
+
+.nav-toggle span {
+    display: block;
+    width: 22px;
+    height: 2px;
+    background: #2F5233;
+    border-radius: 2px;
+    transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.nav-toggle.open span:nth-child(1) {
+    transform: translateY(7px) rotate(45deg);
+}
+
+.nav-toggle.open span:nth-child(2) {
+    opacity: 0;
+}
+
+.nav-toggle.open span:nth-child(3) {
+    transform: translateY(-7px) rotate(-45deg);
+}
+
 @media (max-width: 640px) {
     .site-header nav {
-        flex-direction: column;
-        align-items: flex-start;
+        flex-wrap: nowrap;
+        justify-content: space-between;
         padding: 10px 16px;
     }
 
+    .site-header .brand {
+        font-size: 1.4em;
+    }
+
+    .nav-toggle {
+        display: flex;
+    }
+
+    /* Collapsed by default: the toggle button reveals this as a dropdown
+       instead of it permanently pushing content down the page. */
     .site-header .nav-links {
+        display: none;
+        flex-direction: column;
+        align-items: stretch;
         gap: 2px;
+        width: 100%;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: #FBF8F1;
+        padding: 6px 16px 14px;
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+        border-top: 1px solid rgba(0, 0, 0, 0.06);
+    }
+
+    .site-header .nav-links.open {
+        display: flex;
+    }
+
+    .site-header nav {
+        position: relative;
+    }
+
+    .site-header .nav-links a,
+    .site-header .nav-user {
+        width: 100%;
+        padding: 12px 8px;
+        font-size: 1em;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.05);
     }
 }

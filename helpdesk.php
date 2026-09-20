@@ -121,6 +121,11 @@ try {
   .response{ background:var(--white); padding:14px; margin-top:12px; border-left:3px solid var(--moss); border-radius:4px; font-size:13.5px; }
   .response strong{ color:var(--moss-dark); display:block; margin-bottom:4px; }
   .no-reply{ font-size:13px; color:var(--ink-soft); font-style:italic; }
+
+  @media (max-width: 480px) {
+    .wrap { padding: 28px 16px 50px; }
+    .section { padding: 18px; }
+  }
 </style>
 </head>
 <body>

@@ -123,6 +123,21 @@ $vendors = $pdo->query("SELECT id, store_name FROM vendors ORDER BY store_name")
 
     .msg-cell { max-width: 260px; color: var(--ink-soft); }
     .empty-row td { text-align: center; padding: 40px; color: var(--ink-soft); }
+
+    @media (max-width: 700px) {
+        .container { padding: 24px 14px 50px; }
+        .page-header { flex-direction: column; align-items: flex-start; }
+        .summary { grid-template-columns: 1fr 1fr; }
+
+        /* No scroll wrapper around this table, so let it scroll
+           horizontally rather than squashing columns unreadably narrow. */
+        table { display: block; overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch; }
+        .msg-cell { max-width: none; white-space: normal; }
+    }
+
+    @media (max-width: 420px) {
+        .summary { grid-template-columns: 1fr; }
+    }
 </style>
 </head>
 <body>

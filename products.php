@@ -104,6 +104,7 @@ try {
   .page-head p{ color:var(--ink-soft); margin-top:6px; font-size:14.5px; }
 
   .products-layout{ display:grid; grid-template-columns:240px 1fr; gap:32px; max-width:1180px; margin:0 auto; padding:0 28px 70px; align-items:start; }
+  .products-layout > * { min-width: 0; }
   .filter-box{ background:var(--white); border:1px solid var(--line); border-radius:var(--radius-card); padding:20px; opacity:0; animation:fadeIn .4s ease forwards; }
   .filter-box + .filter-box{ margin-top:16px; }
   .filter-box h5{ font-size:13px; font-weight:700; margin-bottom:14px; }
@@ -190,6 +191,11 @@ try {
     .products-layout{ grid-template-columns:1fr; }
     .product-grid{ grid-template-columns:repeat(2,1fr); }
     .product-scroll-box { max-height: none; overflow-y: visible; }
+  }
+
+  @media (max-width: 520px){
+    .product-grid{ grid-template-columns:1fr; }
+    .wrap.page-head{ padding-left: 16px; padding-right: 16px; }
   }
 </style>
 </head>

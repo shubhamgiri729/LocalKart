@@ -322,6 +322,12 @@ $sales = $stmt->fetchAll(PDO::FETCH_ASSOC);
     color: var(--ink-soft);
     font-size: 13.5px;
   }
+
+  @media (max-width: 700px) {
+    .main-content { padding: 24px 14px; }
+    .dashboard-header { flex-direction: column; align-items: flex-start; }
+    .section { padding: 18px; }
+  }
 </style>
 
 <script>

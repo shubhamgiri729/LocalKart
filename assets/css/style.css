@@ -145,3 +145,27 @@ input:focus, select:focus, textarea:focus {
     background: #218838;
     box-shadow: 0 2px 6px rgba(40, 167, 69, 0.25);
 }
+
+@media (max-width: 640px) {
+    .container {
+        margin: 12px auto;
+        padding: 0 14px;
+    }
+
+    .section, .card {
+        padding: 16px;
+    }
+
+    /* Tables have no wrapper on some pages; let them scroll horizontally
+       instead of squashing columns unreadably narrow. */
+    table {
+        display: block;
+        overflow-x: auto;
+        white-space: nowrap;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .btn {
+        padding: 10px 16px;
+    }
+}

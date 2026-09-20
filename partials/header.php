@@ -32,7 +32,12 @@ function navActive(string $page, string $current): string
 <header class="site-header">
     <nav>
         <a class="brand" href="index.php"><span class="brand-icon">🧺</span> LocalKart</a>
-        <div class="nav-links">
+
+        <button type="button" class="nav-toggle" id="navToggle" aria-expanded="false" aria-controls="navLinks" aria-label="Toggle navigation menu">
+            <span></span><span></span><span></span>
+        </button>
+
+        <div class="nav-links" id="navLinks">
             <a href="index.php" class="<?= navActive('index.php', $currentPage) ?>">Home</a>
             <a href="products.php" class="<?= navActive('products.php', $currentPage) ?>">Products</a>
 
@@ -63,3 +68,33 @@ function navActive(string $page, string $current): string
         </div>
     </nav>
 </header>
+<script>
+    // Mobile nav toggle. Hidden by default under 640px (see header.css);
+    // this just flips the open state and closes the menu again once a
+    // link is tapped, or the page is resized back to desktop.
+    (function () {
+        var toggle = document.getElementById('navToggle');
+        var links = document.getElementById('navLinks');
+        if (!toggle || !links) return;
+
+        function closeMenu() {
+            links.classList.remove('open');
+            toggle.classList.remove('open');
+            toggle.setAttribute('aria-expanded', 'false');
+        }
+
+        toggle.addEventListener('click', function () {
+            var isOpen = links.classList.toggle('open');
+            toggle.classList.toggle('open', isOpen);
+            toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+        });
+
+        links.querySelectorAll('a').forEach(function (a) {
+            a.addEventListener('click', closeMenu);
+        });
+
+        window.addEventListener('resize', function () {
+            if (window.innerWidth > 640) closeMenu();
+        });
+    })();
+</script>

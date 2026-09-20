@@ -153,6 +153,11 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
     .product-grid{ grid-template-columns:repeat(2,1fr); }
     .store-banner-actions{ margin-left:0; width:100%; }
   }
+
+  @media (max-width: 520px){
+    .product-grid{ grid-template-columns:1fr; }
+    .store-banner-inner{ flex-direction: column; align-items: flex-start; text-align: left; gap: 12px; }
+  }
 </style>
 </head>
 <body>

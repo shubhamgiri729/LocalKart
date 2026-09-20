@@ -125,15 +125,22 @@ $pdo->beginTransaction();
 
 try {
     $stmt = $pdo->prepare(
-        "INSERT INTO orders (customer_id, total, payment_method, razorpay_order_id, razorpay_payment_id, status, created_at)
-         VALUES (?, ?, ?, ?, ?, 'pending', NOW())"
+        "INSERT INTO orders (
+            customer_id, total, payment_method, razorpay_order_id, razorpay_payment_id, status,
+            shipping_name, shipping_email, shipping_address, shipping_city, shipping_zip, shipping_country,
+            created_at
+        )
+         VALUES (?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?, ?, ?, NOW())"
     );
-    $stmt->execute([$customer_id, $total, $payment_method, $razorpay_order_id, $razorpay_payment_id]);
+    $stmt->execute([
+        $customer_id, $total, $payment_method, $razorpay_order_id, $razorpay_payment_id,
+        $full_name, $email, $address, $city, $zip_code, $country
+    ]);
     $order_id = $pdo->lastInsertId();
 
     $item_stmt = $pdo->prepare(
-        "INSERT INTO order_items (order_id, product_id, vendor_id, quantity, price)
-         VALUES (?, ?, ?, ?, ?)"
+        "INSERT INTO order_items (order_id, product_id, vendor_id, quantity, price, status)
+         VALUES (?, ?, ?, ?, ?, 'pending')"
     );
 
     foreach ($order_items as $item) {

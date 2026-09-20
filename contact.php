@@ -1,5 +1,6 @@
 <?php
 require_once 'config.php';
+require_once 'mailer.php';
 
 $successMessage = '';
 $errorMessage = '';
@@ -21,10 +22,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (!empty($formData['name']) && !empty($formData['email']) && !empty($formData['message'])) {
         if (filter_var($formData['email'], FILTER_VALIDATE_EMAIL)) {
-            // TODO: persist to a contact_messages table and/or send via mail()/PHPMailer.
-            // Currently simulated — nothing is stored yet.
-            $successMessage = "Thank you, {$formData['name']}! Your message has been sent. We'll get back to you soon.";
-            $formData = ['name' => '', 'email' => '', 'subject' => 'General inquiry', 'message' => ''];
+            // Keep values within sane sizes.
+            $formData['name']    = mb_substr($formData['name'], 0, 100);
+            $formData['subject'] = mb_substr($formData['subject'], 0, 150);
+            $formData['message'] = mb_substr($formData['message'], 0, 5000);
+
+            if (time() - ($_SESSION['contact_last_sent'] ?? 0) < 30) {
+                // Basic spam brake — the mail goes out through our own SMTP account.
+                $errorMessage = "Please wait a few seconds before sending another message.";
+            } elseif (CONTACT_EMAIL === '') {
+                error_log('contact.php: CONTACT_EMAIL / SMTP is not configured in .env');
+                $errorMessage = "Sorry, we can't accept messages right now. Please try again later.";
+            } else {
+                $h = fn(string $v): string => htmlspecialchars($v, ENT_QUOTES, 'UTF-8');
+
+                $html = '<p><strong>From:</strong> ' . $h($formData['name']) . ' &lt;' . $h($formData['email']) . '&gt;</p>'
+                      . '<p><strong>Subject:</strong> ' . $h($formData['subject']) . '</p><hr>'
+                      . '<p>' . nl2br($h($formData['message'])) . '</p>';
+                $text = "From: {$formData['name']} <{$formData['email']}>\nSubject: {$formData['subject']}\n\n{$formData['message']}";
+
+                if (sendMail(CONTACT_EMAIL, 'LocalKart contact: ' . $formData['subject'], $html, $text, $formData['email'])) {
+                    $_SESSION['contact_last_sent'] = time();
+                    $successMessage = "Thank you, {$formData['name']}! Your message has been sent. We'll get back to you soon.";
+                    $formData = ['name' => '', 'email' => '', 'subject' => 'General inquiry', 'message' => ''];
+                } else {
+                    $errorMessage = "Sorry, we couldn't send your message right now. Please try again in a few minutes.";
+                }
+            }
         } else {
             $errorMessage = "Please enter a valid email address.";
         }

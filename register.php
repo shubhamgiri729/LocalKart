@@ -26,7 +26,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $storeName = trim($_POST['store_name'] ?? '');
         $address   = trim($_POST['address'] ?? '');
 
-        if ($role === 'shopkeeper' && (empty($storeName) || empty($address))) {
+        if ($username === '' || strlen($username) > 50) {
+            $error = 'Please enter a username (up to 50 characters).';
+        } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL) || strlen($email) > 100) {
+            $error = 'Please enter a valid email address.';
+        } elseif (strlen($password) < 6) {
+            $error = 'Password must be at least 6 characters long.';
+        } elseif ($role === 'shopkeeper' && (empty($storeName) || empty($address))) {
             $error = 'Store name and address are required for shopkeepers.';
         } else {
             try {

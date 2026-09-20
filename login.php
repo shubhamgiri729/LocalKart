@@ -11,31 +11,40 @@ $username = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     requireCsrf();
 
-    $username = trim($_POST['username'] ?? '');
-    $password = $_POST['password'] ?? '';
+    $ip = clientIp();
 
-    if (empty($username) || empty($password)) {
-        $error = 'Please fill in all fields.';
+    if (tooManyLoginAttempts($pdo, $ip)) {
+        $error = 'Too many failed login attempts. Please wait ' . LOGIN_ATTEMPT_WINDOW_MINUTES . ' minutes and try again.';
     } else {
-        $stmt = $pdo->prepare("SELECT id, username, password, role FROM users WHERE username = ?");
-        $stmt->execute([$username]);
-        $user = $stmt->fetch(PDO::FETCH_ASSOC);
+        $username = trim($_POST['username'] ?? '');
+        $password = $_POST['password'] ?? '';
 
-        if ($user && password_verify($password, $user['password'])) {
-            // Regenerate the session ID now that the user is authenticated,
-            // so a session ID issued before login (which an attacker could
-            // have planted, e.g. via a shared link) can't be reused to hijack
-            // this now-authenticated session. true = destroy the old session.
-            session_regenerate_id(true);
-
-            $_SESSION['user_id']  = $user['id'];
-            $_SESSION['username'] = $user['username'];
-            $_SESSION['role']     = $user['role'];
-
-            redirectByRole('admin.php', 'shopkeeper.php', 'customer.php');
-            exit;
+        if (empty($username) || empty($password)) {
+            $error = 'Please fill in all fields.';
         } else {
-            $error = 'Invalid username or password.';
+            $stmt = $pdo->prepare("SELECT id, username, password, role FROM users WHERE username = ?");
+            $stmt->execute([$username]);
+            $user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if ($user && password_verify($password, $user['password'])) {
+                clearLoginAttempts($pdo, $ip);
+
+                // Regenerate the session ID now that the user is authenticated,
+                // so a session ID issued before login (which an attacker could
+                // have planted, e.g. via a shared link) can't be reused to hijack
+                // this now-authenticated session. true = destroy the old session.
+                session_regenerate_id(true);
+
+                $_SESSION['user_id']  = $user['id'];
+                $_SESSION['username'] = $user['username'];
+                $_SESSION['role']     = $user['role'];
+
+                redirectByRole('admin.php', 'shopkeeper.php', 'customer.php');
+                exit;
+            } else {
+                recordFailedLogin($pdo, $ip, $username);
+                $error = 'Invalid username or password.';
+            }
         }
     }
 }

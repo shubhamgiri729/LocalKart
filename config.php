@@ -65,7 +65,10 @@ try {
 
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 } catch (PDOException $e) {
-    die("Database Connection Failed: " . $e->getMessage());
+    // Details go to the server log only — never to the visitor's browser.
+    error_log('Database connection failed: ' . $e->getMessage());
+    http_response_code(500);
+    die('Sorry, the site is temporarily unavailable. Please try again later.');
 }
 
 // Gemini configuration.
@@ -86,6 +89,10 @@ define('SMTP_USERNAME', getenv('SMTP_USERNAME') ?: '');
 define('SMTP_PASSWORD', getenv('SMTP_PASSWORD') ?: '');
 define('SMTP_FROM_EMAIL', getenv('SMTP_FROM_EMAIL') ?: 'no-reply@localkart.test');
 define('SMTP_FROM_NAME', getenv('SMTP_FROM_NAME') ?: 'LocalKart');
+
+// Where messages from the Contact Us form are delivered. Defaults to the SMTP
+// account itself, so it works out of the box once SMTP is configured.
+define('CONTACT_EMAIL', getenv('CONTACT_EMAIL') ?: (getenv('SMTP_USERNAME') ?: ''));
 
 // Razorpay. RAZORPAY_KEY_ID is safe to expose to the browser (checkout.php
 // prints it into the page for Checkout.js) — RAZORPAY_KEY_SECRET must never
@@ -267,4 +274,114 @@ function requireCsrf(): void
         http_response_code(403);
         die('Your session expired or this request could not be verified. Please go back, refresh the page, and try again.');
     }
+}
+
+/**
+ * Recompute an order's overall status from the per-vendor status of its
+ * order_items, and write it back to orders.status.
+ *
+ * order_items.status is the source of truth (each vendor dispatches/
+ * delivers their own line items independently). orders.status is kept
+ * as a derived summary column — customer.php and admin.php show a single
+ * badge per order, and this is what feeds it:
+ *   - 'pending'    if every item is still pending
+ *   - 'dispatched' if at least one item has moved but not all are delivered
+ *   - 'delivered'  once every item in the order is delivered
+ *
+ * Call this after any code path that changes an order_items.status value.
+ *
+ * @return void
+ */
+function recomputeOrderStatus(PDO $pdo, int $orderId): void
+{
+    $stmt = $pdo->prepare("SELECT status FROM order_items WHERE order_id = ?");
+    $stmt->execute([$orderId]);
+    $statuses = $stmt->fetchAll(PDO::FETCH_COLUMN);
+
+    if (!$statuses) {
+        return;
+    }
+
+    if (!in_array('pending', $statuses, true) && !in_array('dispatched', $statuses, true)) {
+        $overall = 'delivered';
+    } elseif (in_array('dispatched', $statuses, true) || in_array('delivered', $statuses, true)) {
+        $overall = 'dispatched';
+    } else {
+        $overall = 'pending';
+    }
+
+    $stmt = $pdo->prepare("UPDATE orders SET status = ? WHERE id = ?");
+    $stmt->execute([$overall, $orderId]);
+}
+
+// --- Login rate limiting -----------------------------------------------
+// Backed by the login_attempts table (see database.sql /
+// migration_shipping_and_item_status.sql) rather than in-memory state, so
+// the limit holds across requests, PHP-FPM workers, and server restarts.
+
+define('LOGIN_ATTEMPT_LIMIT', 5);
+define('LOGIN_ATTEMPT_WINDOW_MINUTES', 15);
+
+/**
+ * Best-effort client IP. Trusts X-Forwarded-For only if you configure a
+ * reverse proxy that sets it — on plain XAMPP/Apache this is just
+ * REMOTE_ADDR. Good enough to throttle a single brute-forcing client;
+ * it isn't meant to defeat a determined, distributed attacker (that
+ * needs a WAF/CDN in front of the app, which is outside this app's scope).
+ *
+ * @return string
+ */
+function clientIp(): string
+{
+    return $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
+}
+
+/**
+ * Whether this IP has hit the failed-login limit within the current
+ * window and should be blocked from attempting another login.
+ *
+ * @return bool
+ */
+function tooManyLoginAttempts(PDO $pdo, string $ip): bool
+{
+    $stmt = $pdo->prepare(
+        "SELECT COUNT(*) FROM login_attempts
+         WHERE ip_address = ? AND attempted_at > (NOW() - INTERVAL ? MINUTE)"
+    );
+    $stmt->execute([$ip, LOGIN_ATTEMPT_WINDOW_MINUTES]);
+
+    return (int) $stmt->fetchColumn() >= LOGIN_ATTEMPT_LIMIT;
+}
+
+/**
+ * Record a failed login attempt for this IP, and opportunistically prune
+ * attempts older than a day so the table doesn't grow forever (no cron
+ * needed for a project this size — a 1-in-20 chance per failed attempt
+ * keeps it bounded without adding overhead to every single request).
+ *
+ * @return void
+ */
+function recordFailedLogin(PDO $pdo, string $ip, string $username): void
+{
+    $stmt = $pdo->prepare(
+        "INSERT INTO login_attempts (ip_address, username) VALUES (?, ?)"
+    );
+    $stmt->execute([$ip, substr($username, 0, 50)]);
+
+    if (random_int(1, 20) === 1) {
+        $pdo->exec("DELETE FROM login_attempts WHERE attempted_at < (NOW() - INTERVAL 1 DAY)");
+    }
+}
+
+/**
+ * Clear this IP's recent failed attempts after a successful login, so a
+ * legitimate user who mistyped their password a few times isn't left
+ * sitting near the limit.
+ *
+ * @return void
+ */
+function clearLoginAttempts(PDO $pdo, string $ip): void
+{
+    $stmt = $pdo->prepare("DELETE FROM login_attempts WHERE ip_address = ?");
+    $stmt->execute([$ip]);
 }

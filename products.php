@@ -15,13 +15,26 @@ if (!is_array($selectedCategories)) {
     $selectedCategories = [$selectedCategories];
 }
 
+// Category ids must be plain positive integers (blocks ?category_id[][]=... tricks).
+$selectedCategories = array_values(array_filter(
+    array_map('intval', array_filter($selectedCategories, 'is_scalar')),
+    fn($id) => $id > 0
+));
+
 $minPrice = isset($_GET['min_price']) && is_numeric($_GET['min_price']) ? (float)$_GET['min_price'] : 0;
-$maxPrice = isset($_GET['max_price']) && is_numeric($_GET['max_price']) ? (float)$_GET['max_price'] : 10000;
+// null = no upper limit. (It used to default to 10000, which silently hid every
+// product priced above ₹10,000, e.g. the Sofa Set and Vivo Y20.)
+$maxPrice = isset($_GET['max_price']) && is_numeric($_GET['max_price']) ? (float)$_GET['max_price'] : null;
 $sort = $_GET['sort'] ?? 'popular';
 
 // Build dynamic SQL query joining vendors and categories
-$sql = "SELECT p.*, v.store_name FROM products p JOIN vendors v ON p.vendor_id = v.id WHERE p.price BETWEEN ? AND ?";
-$params = [$minPrice, $maxPrice];
+$sql = "SELECT p.*, v.store_name FROM products p JOIN vendors v ON p.vendor_id = v.id WHERE p.price >= ?";
+$params = [$minPrice];
+
+if ($maxPrice !== null) {
+    $sql .= " AND p.price <= ?";
+    $params[] = $maxPrice;
+}
 
 if (!empty($selectedCategories)) {
     $placeholders = implode(',', array_fill(0, count($selectedCategories), '?'));
@@ -214,7 +227,7 @@ try {
         <div class="price-inputs">
             <input type="number" name="min_price" value="<?= htmlspecialchars($minPrice) ?>" placeholder="Min" min="0">
             <span>-</span>
-            <input type="number" name="max_price" value="<?= htmlspecialchars($maxPrice) ?>" placeholder="Max" min="0">
+            <input type="number" name="max_price" value="<?= htmlspecialchars((string) ($maxPrice ?? '')) ?>" placeholder="Max" min="0">
         </div>
         <button type="submit" class="btn btn-primary btn-sm" style="width:100%; margin-top:12px;">Apply Filter</button>
       </div>

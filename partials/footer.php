@@ -1,5 +1,11 @@
 <?php
 $footerRole = getUserRole();
+$trackLink = match ($footerRole) {
+    'shopkeeper' => 'status.php',
+    'customer'   => 'customer.php',
+    'admin'      => 'admin.php',
+    default      => 'login.php',
+};
 ?>
 <link rel="stylesheet" href="assets/css/footer.css">
 <footer class="site-footer">
@@ -31,7 +37,7 @@ $footerRole = getUserRole();
         <div class="footer-col">
             <h6>Support</h6>
             <a href="helpdesk.php">Help desk</a>
-            <a href="status.php">Track an order</a>
+            <a href="<?= $trackLink ?>">Track an order</a>
             <?php if (!isLoggedIn()): ?>
                 <a href="login.php">Log in</a>
             <?php endif; ?>

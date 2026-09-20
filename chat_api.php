@@ -13,6 +13,11 @@ if (!$userMessage) {
     exit;
 }
 
+if (mb_strlen($userMessage) > 500) {
+    echo json_encode(["reply" => "Please keep your message under 500 characters."]);
+    exit;
+}
+
 $lowerMsg = strtolower($userMessage);
 
 
@@ -43,6 +48,19 @@ if (!GEMINI_API_KEY) {
     echo json_encode(["reply" => "⚠️ Chat assistant is temporarily unavailable (no API key configured)."]);
     exit;
 }
+
+// Throttle the paid Gemini calls: at most 20 per 10 minutes per session, so the
+// public chat endpoint can't be used to burn through the API quota.
+$now = time();
+$_SESSION['chat_hits'] = array_values(array_filter(
+    $_SESSION['chat_hits'] ?? [],
+    fn($t) => $now - $t < 600
+));
+if (count($_SESSION['chat_hits']) >= 20) {
+    echo json_encode(["reply" => "You're sending messages quickly — please wait a few minutes and try again."]);
+    exit;
+}
+$_SESSION['chat_hits'][] = $now;
 
 $systemPrompt = "You are a helpful chatbot for a multi-vendor marketplace. Keep answers short.";
 

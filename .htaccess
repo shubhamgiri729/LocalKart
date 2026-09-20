@@ -1,0 +1,24 @@
+# LocalKart — root .htaccess
+# Stops secrets and source-only files from being downloaded by visitors.
+# (Only works on Apache. On Nginx these rules are ignored — see the deployment notes.)
+
+# Dotfiles (.env, .env.example, .gitignore ...) and source-only file types
+<IfModule mod_authz_core.c>
+    <FilesMatch "^\.">
+        Require all denied
+    </FilesMatch>
+    <FilesMatch "\.(sql|md|log|bak|dist|example)$">
+        Require all denied
+    </FilesMatch>
+</IfModule>
+<IfModule !mod_authz_core.c>
+    <FilesMatch "^\.|\.(sql|md|log|bak|dist|example)$">
+        Order Allow,Deny
+        Deny from all
+    </FilesMatch>
+</IfModule>
+
+# The .git folder (exists if you deploy with `git clone`)
+<IfModule mod_alias.c>
+    RedirectMatch 404 /\.git
+</IfModule>

@@ -29,27 +29,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['dispatch_order'], $_P
     $orderId = (int) $_POST['order_id'];
 
     try {
+        // Only this vendor's own line items on the order move to
+        // 'dispatched' — other vendors' items on the same order are
+        // untouched, so their dispatch status stays theirs to set.
         $stmt = $pdo->prepare("
-            UPDATE orders 
+            UPDATE order_items
             SET status = 'dispatched'
-            WHERE id = ?
-            AND id IN (
-                SELECT o.id FROM orders o
-                JOIN order_items oi ON o.id = oi.order_id
-                WHERE oi.vendor_id = ?
-            )
+            WHERE order_id = ?
+            AND vendor_id = ?
+            AND status = 'pending'
         ");
         $stmt->execute([$orderId, $vendor['id']]);
 
-        header("Location: status.php?msg=Order #$orderId dispatched successfully");
+        recomputeOrderStatus($pdo, $orderId);
+
+        header("Location: status.php?msg=" . urlencode("Order #$orderId dispatched successfully"));
         exit();
     } catch (PDOException $e) {
         $error = "Failed to update order status.";
     }
 }
 
+// oi.* is selected before o.status, so oi.status (this vendor's own
+// dispatch status for this line item) is what lands in $sale['status'] —
+// o.status is aliased separately as the order's overall summary status.
 $stmt = $pdo->prepare("
-    SELECT oi.*, o.status, o.created_at, 
+    SELECT oi.*, o.status AS order_status, o.created_at,
+           o.shipping_name, o.shipping_address, o.shipping_city, o.shipping_zip, o.shipping_country,
            p.name AS product_name, 
            u.username AS customer_name
     FROM order_items oi
@@ -103,6 +109,7 @@ $sales = $stmt->fetchAll(PDO::FETCH_ASSOC);
                         <th>Order ID</th>
                         <th>Product</th>
                         <th>Customer</th>
+                        <th>Ship To</th>
                         <th>Qty</th>
                         <th>Price</th>
                         <th>Total</th>
@@ -117,6 +124,16 @@ $sales = $stmt->fetchAll(PDO::FETCH_ASSOC);
                             <td>#<?= $sale['order_id']; ?></td>
                             <td><?= htmlspecialchars($sale['product_name']); ?></td>
                             <td><?= htmlspecialchars($sale['customer_name']); ?></td>
+                            <td style="max-width: 220px; white-space: pre-line;">
+                                <?php if (!empty($sale['shipping_address'])): ?>
+                                    <strong><?= htmlspecialchars($sale['shipping_name']); ?></strong><br>
+                                    <?= htmlspecialchars($sale['shipping_address']); ?><br>
+                                    <?= htmlspecialchars(trim($sale['shipping_city'] . ' ' . $sale['shipping_zip'])); ?><br>
+                                    <?= htmlspecialchars($sale['shipping_country']); ?>
+                                <?php else: ?>
+                                    <span style="color:#888;">Not available (order placed before address capture)</span>
+                                <?php endif; ?>
+                            </td>
                             <td><?= $sale['quantity']; ?></td>
                             <td>₹<?= number_format($sale['price'], 2); ?></td>
                             <td>₹<?= number_format($sale['price'] * $sale['quantity'], 2); ?></td>

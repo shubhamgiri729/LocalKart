@@ -43,7 +43,7 @@ $categories = $pdo->query("SELECT * FROM categories ORDER BY name")->fetchAll(PD
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     requireCsrf();
 
-    $name        = trim($_POST['name']);
+    $name         = trim($_POST['name']);
     $description = trim($_POST['description']);
     $price       = (float)$_POST['price'];
     $stock       = (int)$_POST['stock'];
@@ -60,8 +60,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $file = $_FILES['image'];
         $allowedExt = ['jpg', 'jpeg', 'png', 'gif'];
-        // Only the MIME types we actually want to serve as images — this is
-        // checked against the file's real content below, not the filename.
         $allowedMime = [
             'image/jpeg' => ['jpg', 'jpeg'],
             'image/png'  => ['png'],
@@ -75,11 +73,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } elseif (!in_array(strtolower(pathinfo($file['name'], PATHINFO_EXTENSION)), $allowedExt, true)) {
             $error = "Only JPG, JPEG, PNG, or GIF allowed.";
         } else {
-            // The filename extension is only a hint — check what the file
-            // actually IS. finfo reads the real content, not the client-
-            // supplied $_FILES['image']['type'] (which is trivially spoofable),
-            // and getimagesize() further confirms it decodes as a real image
-            // rather than, say, a PHP shell renamed to photo.jpg.
             $finfo = finfo_open(FILEINFO_MIME_TYPE);
             $realMime = finfo_file($finfo, $file['tmp_name']);
             finfo_close($finfo);
@@ -89,10 +82,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!isset($allowedMime[$realMime]) || $imageInfo === false) {
                 $error = "That file doesn't look like a valid image.";
             } else {
-                // Fully random filename — the original filename (which could
-                // contain path characters, unicode, or a disguised double
-                // extension like photo.jpg.php) is never used to build the
-                // path on disk.
                 $ext = $allowedMime[$realMime][0];
                 $fileName = bin2hex(random_bytes(16)) . '.' . $ext;
                 $target = $uploadDir . $fileName;
@@ -124,9 +113,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             $success = "Product added successfully!";
         } else {
-            // vendor_id in the WHERE clause is what stops a shopkeeper from
-            // editing a product that isn't theirs, even if they tamper with
-            // the product_id in the form.
             $stmt = $pdo->prepare("
                 UPDATE products 
                 SET category_id=?, name=?, description=?, image=?, price=?, stock=?
@@ -157,97 +143,156 @@ $productData = $product ?: [
 
 <head>
     <meta charset="UTF-8">
-    <title><?php echo ucfirst($action); ?> Product</title>
+    <title><?php echo ucfirst($action); ?> Product — LocalKart</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --paper: #FBF8F1;
+            --paper-alt: #F1E9DA;
+            --ink: #23291D;
+            --ink-soft: #565C4E;
+            --line: #E3DBC8;
+            --moss: #2F5233;
+            --moss-dark: #20391F;
+            --marigold: #E7A62F;
+            --brick: #A63D2F;
+            --white: #FFFFFF;
+            --radius-card: 12px;
+            --radius-pill: 999px;
+            --shadow-soft: 0 1px 2px rgba(35,41,29,0.06), 0 6px 16px rgba(35,41,29,0.05);
+        }
+
+        * { box-sizing: border-box; }
+
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
-            background: #f8f9fa;
-            color: #333;
             margin: 0;
+            background: var(--paper);
+            color: var(--ink);
+            font-family: 'Inter', sans-serif;
+            line-height: 1.55;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .main-content {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 20px;
         }
 
         .container {
             max-width: 600px;
-            margin: 40px auto;
-            background: #fff;
-            padding: 30px;
-            border-radius: 10px;
-            border: 1px solid #eee;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+            width: 100%;
+            margin: 0 auto;
+            background: var(--white);
+            padding: 40px;
+            border-radius: var(--radius-card);
+            border: 1px solid var(--line);
+            box-shadow: var(--shadow-soft);
+        }
+
+        h2 {
+            font-family: 'Fraunces', serif;
+            color: var(--ink);
+            font-weight: 600;
+            letter-spacing: -0.01em;
+            text-align: center;
+            margin-top: 0;
+            margin-bottom: 24px;
+            font-size: 28px;
         }
 
         label {
             font-weight: 600;
-            margin-top: 15px;
+            margin-top: 16px;
             display: block;
-            color: #555;
+            color: var(--ink-soft);
+            font-size: 14px;
         }
 
         input,
         textarea,
         select {
             width: 100%;
-            padding: 10px;
+            padding: 12px 14px;
             margin-top: 6px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
+            border: 1px solid var(--line);
+            border-radius: 8px;
             font-family: inherit;
-            font-size: 15px;
+            font-size: 14px;
+            background: var(--white);
+            color: var(--ink);
             transition: border-color 0.15s, box-shadow 0.15s;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 100px;
         }
 
         input:focus,
         textarea:focus,
         select:focus {
             outline: none;
-            border-color: #007BFF;
-            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.15);
+            border-color: var(--moss);
+            box-shadow: 0 0 0 3px rgba(47, 82, 51, 0.15);
         }
 
         button {
-            margin-top: 20px;
+            margin-top: 24px;
             width: 100%;
-            padding: 12px;
-            background: #007BFF;
-            color: #fff;
+            padding: 12px 20px;
+            background: var(--moss);
+            color: var(--white);
             border: none;
-            border-radius: 4px;
-            font-weight: 500;
+            border-radius: var(--radius-pill);
+            font-family: inherit;
+            font-weight: 600;
             font-size: 15px;
             cursor: pointer;
             transition: background 0.15s, box-shadow 0.15s;
         }
 
         button:hover {
-            background: #0056b3;
-            box-shadow: 0 2px 6px rgba(0, 123, 255, 0.25);
+            background: var(--moss-dark);
+            box-shadow: 0 6px 16px rgba(47,82,51,.28);
         }
 
         .msg-error {
-            background: #f8d7da;
-            color: #721c24;
-            padding: 10px 14px;
-            border-radius: 4px;
-            border: 1px solid #f5c6cb;
-            margin-bottom: 15px;
+            background: #FCE8E6;
+            color: var(--brick);
+            padding: 12px 16px;
+            border-radius: 8px;
+            border: 1px solid #FAD2D0;
+            margin-bottom: 20px;
+            font-size: 14px;
         }
 
         .msg-success {
-            background: #d4edda;
-            color: #155724;
-            padding: 10px 14px;
-            border-radius: 4px;
-            border: 1px solid #c3e6cb;
-            margin-bottom: 15px;
+            background: #EAF3EC;
+            color: var(--moss-dark);
+            padding: 12px 16px;
+            border-radius: 8px;
+            border: 1px solid #C8DED0;
+            margin-bottom: 20px;
+            font-size: 14px;
         }
 
-        img {
-            width: 150px;
+        .preview-img-container {
             margin-top: 10px;
-            border-radius: 6px;
-            border: 1px solid #eee;
+        }
+
+        img.current-product-img {
+            width: 120px;
+            height: 120px;
+            object-fit: cover;
+            border-radius: 8px;
+            border: 1px solid var(--line);
         }
     </style>
 </head>
@@ -256,48 +301,53 @@ $productData = $product ?: [
 
     <?php include 'partials/header.php'; ?>
 
-    <div class="container">
-        <h2><?php echo ucfirst($action); ?> Product</h2>
+    <div class="main-content">
+        <div class="container">
+            <h2><?php echo ucfirst($action); ?> Product</h2>
 
-        <?php if ($error): ?><div class="msg-error"><?php echo htmlspecialchars($error); ?></div><?php endif; ?>
+            <?php if ($error): ?><div class="msg-error"><?php echo htmlspecialchars($error); ?></div><?php endif; ?>
 
-        <form method="POST" enctype="multipart/form-data">
-            <?php csrfField(); ?>
+            <form method="POST" enctype="multipart/form-data">
+                <?php csrfField(); ?>
 
-            <label>Product Name</label>
-            <input type="text" name="name" value="<?php echo htmlspecialchars($productData['name']); ?>" required>
+                <label>Product Name</label>
+                <input type="text" name="name" value="<?php echo htmlspecialchars($productData['name']); ?>" required placeholder="Enter product name">
 
-            <label>Description</label>
-            <textarea name="description" required><?php echo htmlspecialchars($productData['description']); ?></textarea>
+                <label>Description</label>
+                <textarea name="description" required placeholder="Describe your product"><?php echo htmlspecialchars($productData['description']); ?></textarea>
 
-            <label>Product Image</label>
-            <input type="file" name="image">
-            <?php if (!empty($productData['image'])): ?>
-                <img src="uploads/products/<?php echo htmlspecialchars($productData['image']); ?>">
-            <?php endif; ?>
+                <label>Product Image</label>
+                <input type="file" name="image">
+                <?php if (!empty($productData['image'])): ?>
+                    <div class="preview-img-container">
+                        <img src="uploads/products/<?php echo htmlspecialchars($productData['image']); ?>" class="current-product-img" alt="Product Image">
+                    </div>
+                <?php endif; ?>
 
-            <label>Price (₹)</label>
-            <input type="number" step="0.01" min="0.01" name="price" value="<?php echo htmlspecialchars($productData['price']); ?>" required>
+                <label>Price (₹)</label>
+                <input type="number" step="0.01" min="0.01" name="price" value="<?php echo htmlspecialchars($productData['price']); ?>" required placeholder="0.00">
 
-            <label>Stock</label>
-            <input type="number" min="0" name="stock" value="<?php echo htmlspecialchars($productData['stock']); ?>" required>
+                <label>Stock</label>
+                <input type="number" min="0" name="stock" value="<?php echo htmlspecialchars($productData['stock']); ?>" required placeholder="0">
 
-            <label>Category</label>
-            <select name="category_id">
-                <option value="">No Category</option>
-                <?php foreach ($categories as $cat): ?>
-                    <option value="<?php echo $cat['id']; ?>"
-                        <?php if ($productData['category_id'] == $cat['id']) echo "selected"; ?>>
-                        <?php echo htmlspecialchars($cat['name']); ?>
-                    </option>
-                <?php endforeach; ?>
-            </select>
+                <label>Category</label>
+                <select name="category_id">
+                    <option value="">No Category</option>
+                    <?php foreach ($categories as $cat): ?>
+                        <option value="<?php echo $cat['id']; ?>"
+                            <?php if ($productData['category_id'] == $cat['id']) echo "selected"; ?>>
+                            <?php echo htmlspecialchars($cat['name']); ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
 
-            <button type="submit"><?php echo ucfirst($action); ?> Product</button>
-        </form>
+                <button type="submit"><?php echo ucfirst($action); ?> Product</button>
+            </form>
+        </div>
     </div>
+
+    <?php include 'partials/footer.php'; ?>
 
 </body>
 
 </html>
-

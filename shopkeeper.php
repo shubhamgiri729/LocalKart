@@ -28,15 +28,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['mark_delivered'], $_P
     $orderId = (int)$_POST['order_id'];
 
     try {
+        // Only this vendor's own line items move to 'delivered' — a
+        // different vendor's items on the same order are untouched, so
+        // one shopkeeper delivering their part can't flip the status for
+        // everybody else's part of the same order.
         $stmt = $pdo->prepare("
-            UPDATE orders 
+            UPDATE order_items
             SET status = 'delivered'
-            WHERE id = ?
-            AND id IN (
-                SELECT order_id FROM order_items WHERE vendor_id = ?
-            )
+            WHERE order_id = ?
+            AND vendor_id = ?
         ");
         $stmt->execute([$orderId, $vendor['id']]);
+
+        recomputeOrderStatus($pdo, $orderId);
 
         header("Location: shopkeeper.php?msg=Order marked as delivered successfully!");
         exit();
@@ -83,11 +87,14 @@ $stmt = $pdo->prepare("
 $stmt->execute([$vendor['id']]);
 $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+// oi.* comes before o.status, so oi.status (this vendor's own item
+// status) is what ends up in $sales[...]['status'] — the query relies on
+// that ordering, same as status.php.
 $stmt = $pdo->prepare("
     SELECT 
         oi.*, 
-        o.status, 
         o.created_at,
+        o.shipping_name, o.shipping_address, o.shipping_city, o.shipping_zip, o.shipping_country,
         p.name,
         u.username AS customer_name
     FROM order_items oi
@@ -384,7 +391,7 @@ $sales = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                         <td>#<?= $p['id'] ?></td>
                                         <td>
                                             <img src="<?= !empty($p['image']) && file_exists('uploads/products/' . $p['image'])
-                                                    ? 'uploads/products/' . $p['image'] : 'assets/no-image.png' ?>" class="product-img">
+                                                    ? 'uploads/products/' . $p['image'] : 'uploads/products/default.jpg' ?>" class="product-img">
                                         </td>
                                         <td><strong><?= htmlspecialchars($p['name']) ?></strong></td>
                                         <td><?= htmlspecialchars($p['category_name'] ?? 'Uncategorized') ?></td>
@@ -446,7 +453,7 @@ $sales = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                             </span>
                                         </td>
                                         <td onclick="event.stopPropagation()">
-                                            <?php if ($status === 'pending'): ?>
+                                            <?php if ($status !== 'delivered'): ?>
                                                 <form method="POST" style="margin: 0;">
                                                     <?php csrfField(); ?>
                                                     <input type="hidden" name="order_id" value="<?= $id ?>">
@@ -466,6 +473,17 @@ $sales = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                                     <li><?= htmlspecialchars($it['name']) ?> &times; <?= $it['quantity'] ?> (₹<?= number_format($it['price'], 2) ?> each)</li>
                                                 <?php endforeach; ?>
                                             </ul>
+                                            <strong style="display:block; margin: 12px 0 6px; color: var(--ink);">Deliver To:</strong>
+                                            <?php if (!empty($items[0]['shipping_address'])): ?>
+                                                <p style="margin:0; color: var(--ink-soft);">
+                                                    <?= htmlspecialchars($items[0]['shipping_name']) ?><br>
+                                                    <?= htmlspecialchars($items[0]['shipping_address']) ?><br>
+                                                    <?= htmlspecialchars(trim($items[0]['shipping_city'] . ' ' . $items[0]['shipping_zip'])) ?><br>
+                                                    <?= htmlspecialchars($items[0]['shipping_country']) ?>
+                                                </p>
+                                            <?php else: ?>
+                                                <p style="margin:0; color: var(--ink-soft);">Not available (order placed before address capture).</p>
+                                            <?php endif; ?>
                                         </td>
                                     </tr>
 

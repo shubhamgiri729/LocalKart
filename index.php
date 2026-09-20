@@ -395,11 +395,11 @@ try {
                         <?php endif; ?>
 
                         <h3><?= htmlspecialchars($product['name']) ?></h3>
-                        <p>Price: $<?= number_format($product['price'], 2) ?></p>
+                        <p>Price: ₹<?= number_format($product['price'], 2) ?></p>
 
                         <!-- Check if user is logged in -->
                         <?php if (function_exists('isLoggedIn') && isLoggedIn()): ?>
-                            <a href="product.php?id=<?= $product['id'] ?>" class="btn">Add to Cart</a>
+                            <a href="cart.php?action=add&id=<?= (int) $product['id'] ?>" class="btn">Add to Cart</a>
                         <?php else: ?>
                             <a href="login.php" class="btn">Login to Add to Cart</a>
                         <?php endif; ?>

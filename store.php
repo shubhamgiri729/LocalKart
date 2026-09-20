@@ -161,7 +161,7 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 <div class="store-banner">
   <div class="wrap store-banner-inner">
-    <div class="store-avatar">🥦</div>
+    <div class="store-avatar">🏬</div>
     <div>
       <h1><?= htmlspecialchars($store['store_name']) ?></h1>
       <div class="store-meta">

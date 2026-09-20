@@ -33,9 +33,10 @@ function smtpIsConfigured(): bool
  * @param string $subject  Subject line.
  * @param string $htmlBody HTML version of the message.
  * @param string $textBody Plain-text fallback for clients that don't render HTML.
+ * @param string $replyTo  Optional Reply-To address (must be a valid email).
  * @return bool True if the SMTP server accepted the message.
  */
-function sendMail(string $toEmail, string $subject, string $htmlBody, string $textBody = ''): bool
+function sendMail(string $toEmail, string $subject, string $htmlBody, string $textBody = '', string $replyTo = ''): bool
 {
     if (!smtpIsConfigured()) {
         error_log('sendMail: SMTP is not configured — set SMTP_HOST, SMTP_USERNAME and SMTP_PASSWORD in .env');
@@ -60,6 +61,9 @@ function sendMail(string $toEmail, string $subject, string $htmlBody, string $te
 
         $mail->setFrom(SMTP_FROM_EMAIL, SMTP_FROM_NAME);
         $mail->addAddress($toEmail);
+        if ($replyTo !== '') {
+            $mail->addReplyTo($replyTo);
+        }
 
         $mail->isHTML(true);
         $mail->Subject = $subject;

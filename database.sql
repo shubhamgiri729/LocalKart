@@ -74,10 +74,12 @@ CREATE TABLE IF NOT EXISTS cart_items (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- ORDERS TABLE
--- Status values match what the app actually sets: process_order.php writes
--- 'pending', shopkeeper.php's status page sets 'dispatched', and
--- shopkeeper.php's own dashboard sets 'delivered'. ('shipped' was in the
--- original enum but nothing in the code ever sets it.)
+-- status is a derived summary of this order's order_items.status values
+-- (see recomputeOrderStatus() in config.php) — 'pending' while every item
+-- is pending, 'dispatched' once any item has moved, 'delivered' once every
+-- item is delivered. The shipping_* columns are what the customer entered
+-- on checkout.php; process_order.php saves them here so shopkeepers know
+-- where to deliver.
 CREATE TABLE IF NOT EXISTS orders (
     id INT AUTO_INCREMENT PRIMARY KEY,
     customer_id INT NOT NULL,
@@ -86,11 +88,21 @@ CREATE TABLE IF NOT EXISTS orders (
     razorpay_order_id VARCHAR(64) NULL,
     razorpay_payment_id VARCHAR(64) NULL,
     status ENUM('pending', 'dispatched', 'delivered') DEFAULT 'pending',
+    shipping_name VARCHAR(100) NOT NULL DEFAULT '',
+    shipping_email VARCHAR(100) NOT NULL DEFAULT '',
+    shipping_address TEXT NULL,
+    shipping_city VARCHAR(100) NULL,
+    shipping_zip VARCHAR(20) NULL,
+    shipping_country VARCHAR(100) NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (customer_id) REFERENCES users(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- ORDER ITEMS TABLE
+-- status is the real, per-vendor dispatch state for this line item —
+-- each vendor dispatches/delivers only their own items on an order, which
+-- is what shopkeeper.php and status.php read/write. orders.status above
+-- is just a rollup of these for the customer/admin-facing summary view.
 CREATE TABLE IF NOT EXISTS order_items (
     id INT AUTO_INCREMENT PRIMARY KEY,
     order_id INT NOT NULL,
@@ -98,9 +110,23 @@ CREATE TABLE IF NOT EXISTS order_items (
     vendor_id INT NOT NULL,
     quantity INT NOT NULL,
     price DECIMAL(10,2) NOT NULL,
+    status ENUM('pending', 'dispatched', 'delivered') NOT NULL DEFAULT 'pending',
     FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
     FOREIGN KEY (product_id) REFERENCES products(id),
     FOREIGN KEY (vendor_id) REFERENCES vendors(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- LOGIN ATTEMPTS TABLE
+-- Backs login.php's rate limiting: a failed login inserts one row here,
+-- and tooManyLoginAttempts() in config.php counts rows for that IP within
+-- the trailing window (see LOGIN_ATTEMPT_LIMIT / LOGIN_ATTEMPT_WINDOW_MINUTES).
+-- Old rows are pruned opportunistically by recordFailedLogin() — no cron needed.
+CREATE TABLE IF NOT EXISTS login_attempts (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    ip_address VARCHAR(45) NOT NULL,
+    username VARCHAR(50) NULL,
+    attempted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_ip_time (ip_address, attempted_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- HELPDESK TABLE
@@ -203,25 +229,30 @@ INSERT INTO products (id, vendor_id, category_id, name, description, price, stoc
 (29, 11, 1, 'Wired Earphones', 'In-ear wired earphones with mic', 249.00, 150, 'wired_earphones.jpg');
 
 -- ORDERS
-INSERT INTO orders (id, customer_id, total, status, created_at) VALUES
-(1, 8, 3497.00, 'delivered', '2026-09-01 12:00:00'),
-(2, 9, 499.00, 'dispatched', '2026-09-04 12:00:00'),
-(3, 10, 847.00, 'pending', '2026-09-07 12:00:00'),
-(4, 11, 1598.00, 'delivered', '2026-09-10 12:00:00'),
-(5, 12, 2898.00, 'dispatched', '2026-09-13 12:00:00'),
-(6, 13, 8999.00, 'pending', '2026-09-15 12:00:00');
+-- status here is the rollup that would be produced by recomputeOrderStatus()
+-- from the order_items.status values below.
+INSERT INTO orders (id, customer_id, total, status, shipping_name, shipping_email, shipping_address, shipping_city, shipping_zip, shipping_country, created_at) VALUES
+(1, 8, 3497.00, 'delivered', 'Customer One', 'customer1@example.com', '12 MG Road, Flat 4B', 'Mumbai', '400001', 'India', '2026-09-01 12:00:00'),
+(2, 9, 499.00, 'dispatched', 'Customer Two', 'customer2@example.com', '45 Linking Road', 'Mumbai', '400050', 'India', '2026-09-04 12:00:00'),
+(3, 10, 847.00, 'pending', 'Customer Three', 'customer3@example.com', '7 Church Street', 'Bengaluru', '560001', 'India', '2026-09-07 12:00:00'),
+(4, 11, 1598.00, 'delivered', 'Customer Four', 'customer4@example.com', '221 Park Street', 'Kolkata', '700016', 'India', '2026-09-10 12:00:00'),
+(5, 12, 2898.00, 'dispatched', 'Customer Five', 'customer5@example.com', '9 Anna Salai', 'Chennai', '600002', 'India', '2026-09-13 12:00:00'),
+(6, 13, 8999.00, 'pending', 'Customer Six', 'customer6@example.com', '33 Sector 18', 'Noida', '201301', 'India', '2026-09-15 12:00:00');
 
 -- ORDER ITEMS
-INSERT INTO order_items (id, order_id, product_id, vendor_id, quantity, price) VALUES
-(1, 1, 3, 1, 1, 899.00),
-(2, 1, 2, 1, 2, 1299.00),
-(3, 2, 7, 2, 1, 499.00),
-(4, 3, 16, 3, 1, 249.00),
-(5, 3, 12, 3, 2, 299.00),
-(6, 4, 17, 4, 2, 799.00),
-(7, 5, 23, 5, 1, 2199.00),
-(8, 5, 22, 5, 1, 699.00),
-(9, 6, 28, 11, 1, 8999.00);
+-- status matches the vendor-level fulfillment implied by each order's
+-- overall status above (all items dispatched/delivered for orders 1 & 4,
+-- one vendor further along than the other for order 5, etc.)
+INSERT INTO order_items (id, order_id, product_id, vendor_id, quantity, price, status) VALUES
+(1, 1, 3, 1, 1, 899.00, 'delivered'),
+(2, 1, 2, 1, 2, 1299.00, 'delivered'),
+(3, 2, 7, 2, 1, 499.00, 'dispatched'),
+(4, 3, 16, 3, 1, 249.00, 'pending'),
+(5, 3, 12, 3, 2, 299.00, 'pending'),
+(6, 4, 17, 4, 2, 799.00, 'delivered'),
+(7, 5, 23, 5, 1, 2199.00, 'dispatched'),
+(8, 5, 22, 5, 1, 699.00, 'dispatched'),
+(9, 6, 28, 11, 1, 8999.00, 'pending');
 
 -- HELPDESK
 INSERT INTO helpdesk (id, user_id, vendor_id, subject, message, response, status, created_at, updated_at) VALUES

@@ -59,19 +59,16 @@ define('DB_NAME', getenv('DB_NAME') ?: 'multi_vendor_ecommerce');
 
 try {
     $pdo = new PDO(
-        "mysql:host=" . DB_HOST . ";port=" . DB_PORT . ";dbname=" . DB_NAME,
+        "mysql:host=" . DB_HOST . ";port=" . DB_PORT . ";dbname=" . DB_NAME . ";charset=utf8mb4",
         DB_USER,
-        DB_PASS
+        DB_PASS,
+        [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
     );
-
-    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 } catch (PDOException $e) {
-    // Details go to the server log only — never to the visitor's browser.
     error_log('Database connection failed: ' . $e->getMessage());
     http_response_code(500);
     die('Sorry, the site is temporarily unavailable. Please try again later.');
 }
-
 // Gemini configuration.
 // The API key must come from the environment and must never be hardcoded.
 define('GEMINI_API_KEY', getenv('GEMINI_API_KEY') ?: '');

@@ -1,0 +1,13 @@
+{
+    "name": "localkart/localkart",
+    "description": "LocalKart — this file exists only so Railway's build system (Nixpacks/Railpack) installs the PHP extensions listed below. The project has no Composer dependencies of its own.",
+    "require": {
+        "php": ">=8.1",
+        "ext-pdo": "*",
+        "ext-pdo_mysql": "*",
+        "ext-mysqli": "*",
+        "ext-mbstring": "*",
+        "ext-fileinfo": "*",
+        "ext-curl": "*"
+    }
+}
